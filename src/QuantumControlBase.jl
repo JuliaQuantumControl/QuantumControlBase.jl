@@ -1,5 +1,6 @@
 module QuantumControlBase
 
-# Write your package code here.
+include("controlproblem.jl")
+include("controls.jl")
 
 end
