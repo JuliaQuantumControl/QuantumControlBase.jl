@@ -9,7 +9,7 @@ end
 
 """A single optimization objective."""
 struct Objective
-    intial_state
+    initial_state
     H
     target
 end
