@@ -23,11 +23,33 @@ help:  ## show this help
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 
+# We want to test against a checkout of QuantumPropagators
+QUANTUMPROPAGATORS ?= ../QuantumPropagators.jl
+
+define DEV_PACKAGES
+using Pkg;
+Pkg.develop(path="$(QUANTUMPROPAGATORS)");
+endef
+export DEV_PACKAGES
+
+define ENV_PACKAGES
+using Pkg;
+$(DEV_PACKAGES)
+Pkg.develop(PackageSpec(path=pwd()));
+Pkg.instantiate()
+endef
+export ENV_PACKAGES
+
+
+Manifest.toml: Project.toml $(QUANTUMPROPAGATORS)/Project.toml
+	julia --project=. -e "$$DEV_PACKAGES;Pkg.instantiate()"
+
+
 test/Manifest.toml: test/Project.toml
-	julia --project=test -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+	julia --project=test -e "$$ENV_PACKAGES"
 
 
-test:  ## Run the test suite
+test:  Manifest.toml  ## Run the test suite
 	@rm -f test/Manifest.toml  # Pkg.test cannot handle existing Manifest.toml
 	julia --startup-file=yes -e 'using Pkg;Pkg.activate(".");Pkg.test(coverage=true)'
 	@echo "Done. Consider using 'make devrepl'"
@@ -38,7 +60,7 @@ devrepl: test/Manifest.toml ## Start an interactive REPL for testing and buildin
 
 
 docs/Manifest.toml: docs/Project.toml
-	julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+	julia --project=docs -e "$$ENV_PACKAGES"
 
 
 docs: docs/Manifest.toml ## Build the documentation

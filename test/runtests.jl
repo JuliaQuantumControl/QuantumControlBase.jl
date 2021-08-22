@@ -7,6 +7,12 @@ using SafeTestsets
     print("\n* Shapes (test_shapes.jl):")
     @time @safetestset "Shapes" begin include("test_shapes.jl") end
 
+    print("\n* Discretization (test_discretization.jl):")
+    @time @safetestset "Discretization" begin include("test_discretization.jl") end
+
+    print("\n* Propagation (test_propagation.jl):")
+    @time @safetestset "Propagation" begin include("test_propagation.jl") end
+
     print("\n")
 
 end
