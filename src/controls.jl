@@ -142,13 +142,26 @@ end
 
 
 
-"""Extract a Tuple of controls from a generator.
+"""Extract a Tuple of controls.
 
 ```julia
 controls = getcontrols(generator)
 ```
 
-By default, assumes that `generator` is a nested Tuple, e.g.
+extracts the controls from a single dynamical generator.
+
+```julia
+controls = getcontrols(objectives)
+```
+
+extracts the controls from a list of objectives (i.e., from each objective's
+`generator`)
+
+In either case, controls that occur multiple times, either in a single
+generator, or throughout the different objectives, will occur only once in the
+result.
+
+By default, assumes that any `generator` is a nested Tuple, e.g.
 `(H0, (H1, ϵ1), (H2, ϵ2), ...)` and extracts (ϵ1, ϵ2)
 
 Each control must be a valid argument for `discretize`.
@@ -166,6 +179,24 @@ function getcontrols(generator::Tuple)
             else
                 push!(controls, control)
                 slots_dict[control] = [i]
+            end
+        end
+    end
+    return Tuple(controls)
+end
+
+
+function getcontrols(objectives::Vector{Objective})
+    controls = []
+    seen_control = IdDict{Any, Bool}()
+    for obj in objectives
+        obj_controls = getcontrols(obj.generator)
+        for control in obj_controls
+            if haskey(seen_control, control)
+                # skip: already seen
+            else
+                push!(controls, control)
+                seen_control[control] = true
             end
         end
     end
