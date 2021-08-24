@@ -6,18 +6,39 @@ import Base
 ControlProblem(
    objectives=<list of objectives>,
    pulse_options=<dict of controls to pulse options>,
-   tlist=<time grid>
+   tlist=<time grid>,
+   kwargs...
 )
 ```
 
 Note that the control problem can only be instantiated via keyword arguments.
+
+The `objectives` are a list of [`Objective`](@ref) instances, each defining an
+initial state, a dynamical generator for the evolution of the state, and
+(optionally) a target for the evolution.
+
+The `pulse_options` are a dictionary (`IdDict`) mapping controls that occur in
+the `objectives` to properties specific to the control method.
+
+The `tlist` is the time grid on which the time evolution of the initial states
+of each objective should be propagated.
+
+The remaining `kwargs` are keyword arguments that are passed directl to the
+optimal control method. These typically include e.g. the optimization
+functional.
+
+The control problem is solved by finding a set of controls that simultaneously
+fulfill all objectives.
 """
 struct ControlProblem
+    # TODO: specify types
+    # TODO: `pulse_options` is not a good name
     objectives
     pulse_options
     tlist
-    function ControlProblem(;objectives, pulse_options, tlist)
-        new(objectives, pulse_options, tlist)
+    kwargs
+    function ControlProblem(;objectives, pulse_options, tlist, kwargs...)
+        new(objectives, pulse_options, tlist, kwargs)
     end
 end
 
