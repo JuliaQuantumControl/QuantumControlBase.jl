@@ -6,15 +6,26 @@ import QuantumPropagators
 """Propagate the initial state of a control objective.
 
 ```julia
-propagate(obj; kwargs...)
+propagate(obj, tlist; controls_map=IdDict(), kwargs...)
 ```
 
-All keyword arguments are forwarded to `QuantumPropagators.propagate`.
+propagates `obj.initial_state` under the dynamics described by `obj.generator`.
+
+The optional dict `control_map` may be given to replace the controls in
+`obj.generator` (as obtained by [`getcontrols`](@ref)) with custom functions or
+vectors, e.g. with the controls resulting from optimization.
+
+All `kwargs` are forwarded to `QuantumPropagators.propagate`.
 """
-function QuantumPropagators.propagate(obj::Objective, tlist; kwargs...)
+function QuantumPropagators.propagate(
+    obj::Objective, tlist; controls_map=IdDict(), kwargs...
+)
 
     controls = getcontrols(obj.generator)
-    pulses = [discretize_on_midpoints(control, tlist) for control in controls]
+    pulses = [
+        discretize_on_midpoints(get(controls_map, control, control), tlist)
+        for control in controls
+    ]
 
     zero_vals = IdDict(control => 0 for control in controls)
     G = setcontrolvals(obj.generator, zero_vals)
