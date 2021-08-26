@@ -38,7 +38,46 @@ function QuantumPropagators.propagate(
         return G
     end
 
-    return QuantumPropagators.propagate(obj.initial_state, genfunc, tlist;
-                                        kwargs...)
+    if haskey(kwargs, :wrk)
+        return QuantumPropagators.propagate(obj.initial_state, genfunc, tlist;
+                                            kwargs...)
+    else
+        wrk = QuantumPropagators.initpropwrk(obj, tlist; kwargs...)
+        return QuantumPropagators.propagate(obj.initial_state, genfunc, tlist;
+                                            wrk=wrk, kwargs...)
+    end
 
+end
+
+
+"""
+```julia
+wrk = initpropwrk(obj, tlist; method=:auto, kwargs...)
+```
+
+initializes a workspace for the propagation of a control [`Objective`](@ref).
+"""
+function QuantumPropagators.initpropwrk(obj::Objective, tlist; method=:auto,
+                                        kwargs...)
+    state = obj.initial_state
+    controls = getcontrols(obj.generator)
+    controlvals = [discretize(control, tlist) for control in controls]
+    zero_vals = IdDict(
+        control => zero(controlvals[i][1])
+        for (i, control) in enumerate(controls)
+    )
+    G_zero = setcontrolvals(obj.generator, zero_vals)
+    max_vals = IdDict(
+        control => maximum(controlvals[i])
+        for (i, control) in enumerate(controls)
+    )
+    G_max = setcontrolvals(obj.generator, max_vals)
+    min_vals = IdDict(
+        control => minimum(controlvals[i])
+        for (i, control) in enumerate(controls)
+    )
+    G_min = setcontrolvals(obj.generator, min_vals)
+    return QuantumPropagators.initpropwrk(
+        state, tlist, G_zero, G_max, G_min; method=method, kwargs...
+    )
 end
