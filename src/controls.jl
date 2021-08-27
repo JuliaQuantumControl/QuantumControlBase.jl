@@ -217,7 +217,6 @@ general `generator` according to `vals_dict`.
 The `vals_dict` is a dictionary (`IdDict`) mapping controls as returned by
 `getcontrols(generator)` to values.
 """
-# Note: The resulting G must be a valid argument for the `propagator`.
 function setcontrolvals(generator::Tuple, vals_dict::D) where D<:AbstractDict
     if isa(generator[1], Tuple)
         control = generator[1][2]
