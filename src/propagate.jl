@@ -6,7 +6,7 @@ import QuantumPropagators
 """Propagate the initial state of a control objective.
 
 ```julia
-propagate(obj, tlist; controls_map=IdDict(), kwargs...)
+propagate(obj, tlist, method=:auto; controls_map=IdDict(), kwargs...)
 ```
 
 propagates `obj.initial_state` under the dynamics described by `obj.generator`.
@@ -18,7 +18,7 @@ vectors, e.g. with the controls resulting from optimization.
 All `kwargs` are forwarded to `QuantumPropagators.propagate`.
 """
 function QuantumPropagators.propagate(
-    obj::Objective, tlist; controls_map=IdDict(), kwargs...
+    obj::Objective, tlist, method=Val(:auto); controls_map=IdDict(), kwargs...
 )
 
     controls = getcontrols(obj.generator)
@@ -38,14 +38,9 @@ function QuantumPropagators.propagate(
         return G
     end
 
-    if haskey(kwargs, :wrk)
-        return QuantumPropagators.propagate(obj.initial_state, genfunc, tlist;
-                                            kwargs...)
-    else
-        wrk = QuantumPropagators.initpropwrk(obj, tlist; kwargs...)
-        return QuantumPropagators.propagate(obj.initial_state, genfunc, tlist;
-                                            wrk=wrk, kwargs...)
-    end
+    wrk = QuantumPropagators.initpropwrk(obj, tlist; method=method, kwargs...)
+    return QuantumPropagators.propagate(obj.initial_state, genfunc, tlist, wrk;
+                                        kwargs...)
 
 end
 
@@ -56,9 +51,13 @@ wrk = initpropwrk(obj, tlist; method=:auto, kwargs...)
 ```
 
 initializes a workspace for the propagation of a control [`Objective`](@ref).
+
+Note that `method` must be given as a keyword argument.
 """
-function QuantumPropagators.initpropwrk(obj::Objective, tlist; method=:auto,
-                                        kwargs...)
+function QuantumPropagators.initpropwrk(obj::Objective, tlist;
+                                        method=Val(:auto), kwargs...)
+    # method is a kw-arg because otherwise this method is ambiguous with
+    # initpropwrk(state, tlist, method::Val{:auto}, generator...; kwargs...)
     state = obj.initial_state
     controls = getcontrols(obj.generator)
     controlvals = [discretize(control, tlist) for control in controls]
@@ -78,6 +77,6 @@ function QuantumPropagators.initpropwrk(obj::Objective, tlist; method=:auto,
     )
     G_min = setcontrolvals(obj.generator, min_vals)
     return QuantumPropagators.initpropwrk(
-        state, tlist, G_zero, G_max, G_min; method=method, kwargs...
+        state, tlist, method, G_zero, G_max, G_min; kwargs...
     )
 end
