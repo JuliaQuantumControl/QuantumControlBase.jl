@@ -32,7 +32,6 @@ The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
 @concrete struct ControlProblem
-    # TODO: specify types
     # TODO: `pulse_options` is not a good name
     objectives
     pulse_options
