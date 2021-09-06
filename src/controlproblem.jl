@@ -1,4 +1,5 @@
 import Base
+using ConcreteStructs: @concrete
 
 """A full control problem with multiple objectives.
 
@@ -30,7 +31,7 @@ functional.
 The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
-struct ControlProblem
+@concrete struct ControlProblem
     # TODO: specify types
     # TODO: `pulse_options` is not a good name
     objectives
@@ -38,7 +39,7 @@ struct ControlProblem
     tlist
     kwargs
     function ControlProblem(;objectives, pulse_options, tlist, kwargs...)
-        new(objectives, pulse_options, tlist, kwargs)
+        new{typeof(objectives), typeof(pulse_options), typeof(tlist), typeof(kwargs)}(objectives, pulse_options, tlist, kwargs)
     end
 end
 
@@ -55,12 +56,12 @@ Objective(
 Note that the objective can only be instantiated via keyword arguments.
 ```
 """
-struct Objective
+@concrete struct Objective
     initial_state
     generator
     target
-    function Objective(;initial_state, generator, target=nothing)
-        new(initial_state, generator, target)
+    function Objective(;initial_state::IS, generator::G, target::T=nothing) where {IS, G, T}
+        new{IS, G, T}(initial_state, generator, target)
     end
 end
 
