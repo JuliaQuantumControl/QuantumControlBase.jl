@@ -8,5 +8,6 @@ ConcreteStructs = "2569d6c7-a4a2-43d3-a901-331e8e4be471"
 QuantumPropagators = "7bf12567-5742-4b91-a078-644e72a65fc1"
 
 [compat]
+ConcreteStructs = "0.2"
 QuantumPropagators = "^0.0"
 julia = "1.6"
