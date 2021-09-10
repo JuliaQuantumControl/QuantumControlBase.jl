@@ -10,5 +10,5 @@ Documentation for [QuantumControlBase](https://github.com/quantumcontrol-jl/Quan
 ```
 
 ```@autodocs
-Modules = [QuantumControlBase]
+Modules = [QuantumControlBase, QuantumControlBase.ConditionalThreads]
 ```

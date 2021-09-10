@@ -12,4 +12,6 @@ export getcontrols
 include("shapes.jl")
 export flattop, box, blackman
 
+include("conditionalthreads.jl")
+
 end
