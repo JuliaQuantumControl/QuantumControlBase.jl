@@ -120,7 +120,7 @@ function liouvillian(H::Tuple, c_ops=(); convention)
     else
         if length(H) > 0
             N = nhilbert(H[1])
-            L0 = spzeros(ComplexF64, N, N)
+            L0 = spzeros(ComplexF64, N^2, N^2)
         else
             throw(ArgumentError("At least one of H and c_ops must be non-empty"))
         end
