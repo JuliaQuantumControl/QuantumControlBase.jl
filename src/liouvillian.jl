@@ -67,7 +67,7 @@ nhilbert(H::Tuple{HT, ET}) where {HT <: AbstractMatrix, ET} = size(H[1])[1]
 calculates the sparse Liouvillian super-operator `ℒ` from the Hamiltonian `Ĥ`
 and a list `c_ops` of Lindblad operators.
 
-With `convention==:LvN`, applying the resulting `ℒ` to a vectorized density
+With `convention=:LvN`, applying the resulting `ℒ` to a vectorized density
 matrix `ρ⃗` calculates ``\frac{d}{dt} \vec{\rho}(t) = ℒ \vec{\rho}(t)``
 equivalent to the Liouville-von-Neumann equation for the density matrix ``ρ̂``,
 
@@ -96,7 +96,7 @@ and `ℒ₂` again are sparse matrices.
 If ``Ĥ`` is not time-dependent, the resulting `ℒ` will be a single-element
 tuple containing the Liouvillian as a sparse matrix, `ℒ = (ℒ₀, )`.
 
-With `convention==:TDSE`, the Liouvillian will be constructed for the equation
+With `convention=:TDSE`, the Liouvillian will be constructed for the equation
 of motion ``-i \hbar \frac{d}{dt} \vec{\rho}(t) = ℒ \vec{\rho}(t)`` to match
 exactly the form of the time-dependent Schrödinger equation. While this
 notation is not standard in the literature of open quantum systems, it has the
