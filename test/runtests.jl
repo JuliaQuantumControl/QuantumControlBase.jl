@@ -13,6 +13,9 @@ using SafeTestsets
     print("\n* Propagation (test_propagation.jl):")
     @time @safetestset "Propagation" begin include("test_propagation.jl") end
 
+    print("\n* Liouvillian (test_liouvillian.jl):")
+    @time @safetestset "Liouvillian" begin include("test_liouvillian.jl") end
+
     print("\n")
 
 end
