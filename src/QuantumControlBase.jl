@@ -1,7 +1,7 @@
 module QuantumControlBase
 
 include("controlproblem.jl")
-export ControlProblem, Objective
+export ControlProblem, Objective, WeightedObjective
 
 include("propagate.jl")
 

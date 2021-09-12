@@ -30,7 +30,7 @@ using UnicodePlots
 
     H = hamiltonian();
 
-    obj = Objective(initial_state=ket(0), generator=H, target=ket(1))
+    obj = Objective(initial_state=ket(0), generator=H, target_state=ket(1))
 
     tlist = collect(range(0, 5, length=500));
 

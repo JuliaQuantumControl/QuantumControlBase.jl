@@ -186,7 +186,7 @@ function getcontrols(generator::Tuple)
 end
 
 
-function getcontrols(objectives::Vector{Objective{I, G, T}}) where {I, G, T}
+function getcontrols(objectives::Vector{T}) where {T<:AbstractControlObjective}
     controls = []
     seen_control = IdDict{Any, Bool}()
     for obj in objectives
