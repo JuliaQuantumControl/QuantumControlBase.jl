@@ -59,7 +59,7 @@ struct WeightedObjective{ST, GT} <: AbstractControlObjective
     generator :: GT
     target_state :: ST
     weight :: Float64
-    function Objective(;initial_state::ST, generator::GT, target_state::ST, weight::Float64) where {ST, GT}
+    function WeightedObjective(;initial_state::ST, generator::GT, target_state::ST, weight::Float64) where {ST, GT}
         new{ST, GT}(initial_state, generator, target_state, weight)
     end
 end

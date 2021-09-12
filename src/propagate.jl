@@ -19,24 +19,24 @@ All other `kwargs` are forwarded to the underlying `propagate` method for
 `obj.initial_state`.
 """
 function QuantumPropagators.propagate(
-    obj::Objective, tlist; method=Val(:auto), controls_map=IdDict(), kwargs...
-)
+    obj::OT, tlist; method=Val(:auto), controls_map=IdDict(), kwargs...
+) where {OT <: AbstractControlObjective}
     return propagate_objective(obj, tlist, method;
                                controls_map=controls_map, kwargs...)
 end
 
 
 function propagate_objective(
-    obj::Objective, tlist, method::Symbol; controls_map=IdDict(), kwargs...
-)
+    obj::OT, tlist, method::Symbol; controls_map=IdDict(), kwargs...
+) where {OT <: AbstractControlObjective}
     return propagate_objective(obj, tlist, Val(method);
                                controls_map=controls_map, kwargs...)
 end
 
 
 function propagate_objective(
-    obj::Objective, tlist, method::Val; controls_map=IdDict(), kwargs...
-)
+    obj::OT, tlist, method::Val; controls_map=IdDict(), kwargs...
+) where {OT <: AbstractControlObjective}
     wrk = initobjpropwrk(obj, tlist, method; kwargs...)
     return propagate_objective_with_wrk(obj, tlist, wrk; kwargs...)
 
@@ -44,8 +44,8 @@ end
 
 
 function propagate_objective_with_wrk(
-    obj::Objective, tlist, wrk; controls_map=IdDict(), kwargs...
-)
+    obj::OT, tlist, wrk; controls_map=IdDict(), kwargs...
+) where {OT <: AbstractControlObjective}
 
     controls = getcontrols(obj.generator)
     pulses = [
@@ -76,10 +76,12 @@ end
 wrk = initobjpropwrk(obj, tlist, method; kwargs...)
 ```
 
-initializes a workspace for the propagation of a control [`Objective`](@ref).
+initializes a workspace for the propagation of
+an[`AbstractControlObjective`](@ref).
 """
-function initobjpropwrk(obj::Objective, tlist, method::Val;
-                                        kwargs...)
+function initobjpropwrk(
+            obj::OT, tlist, method::Val; kwargs...
+        ) where {OT <: AbstractControlObjective}
     # This doesn't extend QuantumPropagators.initpropwrk directly, because it
     # would lead to an "ambiguous method"
     state = obj.initial_state
@@ -110,13 +112,16 @@ function initobjpropwrk(obj::Objective, tlist, method::Val;
 end
 
 
-function initobjpropwrk(obj::Objective, tlist, method::Symbol; kwargs...)
-    return  initobjpropwrk(obj::Objective, tlist, Val(method); kwargs...)
+function initobjpropwrk(
+            obj::OT, tlist, method::Symbol; kwargs...
+        ) where {OT <: AbstractControlObjective}
+    return  initobjpropwrk(obj::OT, tlist, Val(method); kwargs...)
 end
 
 
-function initobjpropwrk(obj::Objective, tlist, method::Val{:newton};
-                                        kwargs...)
+function initobjpropwrk(
+            obj::OT, tlist, method::Val{:newton}; kwargs...
+        ) where {OT <: AbstractControlObjective}
     state = obj.initial_state
     return QuantumPropagators.initpropwrk(
         state, tlist, method; kwargs...
@@ -124,8 +129,9 @@ function initobjpropwrk(obj::Objective, tlist, method::Val{:newton};
 end
 
 
-function initobjpropwrk(obj::Objective, tlist, method::Val{:expprop};
-                                        kwargs...)
+function initobjpropwrk(
+            obj::OT, tlist, method::Val{:expprop}; kwargs...
+        ) where {OT <: AbstractControlObjective}
     state = obj.initial_state
     return QuantumPropagators.initpropwrk(
         state, tlist, method; kwargs...
