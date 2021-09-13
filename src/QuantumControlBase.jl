@@ -4,6 +4,7 @@ include("controlproblem.jl")
 export ControlProblem, Objective, WeightedObjective
 
 include("propagate.jl")
+export obj_genfunc
 
 include("controls.jl")
 export discretize, discretize_on_midpoints, setcontrolvals, setcontrolvals!
