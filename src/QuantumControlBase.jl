@@ -16,6 +16,9 @@ export liouvillian
 include("shapes.jl")
 export flattop, box, blackman
 
+include("functionals.jl")
+export F_ss, J_T_ss, chi_ss!, F_sm, J_T_sm, chi_sm!, F_re, J_T_re, chi_re!
+
 include("conditionalthreads.jl")
 
 end
