@@ -74,7 +74,9 @@ function propagate_objective(
     obj::AbstractControlObjective, tlist, method::Val; controls_map=IdDict(), kwargs...
 )
     wrk = initobjpropwrk(obj, tlist, method; kwargs...)
-    return propagate_objective_with_wrk(obj, tlist, wrk; kwargs...)
+    return propagate_objective_with_wrk(
+        obj, tlist, wrk; controls_map=controls_map, kwargs...
+    )
 
 end
 
