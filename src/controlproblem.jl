@@ -103,8 +103,9 @@ struct ControlProblem{OT<:AbstractControlObjective, OPT<:AbstractDict, KWT}
     tlist :: Vector{Float64}
     kwargs :: KWT
     function ControlProblem(;objectives, pulse_options, tlist, kwargs...)
-        new{typeof(objectives[1]), typeof(pulse_options), typeof(kwargs)}(
-            objectives, pulse_options, tlist, kwargs
+        kwargs_dict = Dict(kwargs)  # make the kwargs mutable
+        new{typeof(objectives[1]), typeof(pulse_options), typeof(kwargs_dict)}(
+            objectives, pulse_options, tlist, kwargs_dict
         )
     end
 end
