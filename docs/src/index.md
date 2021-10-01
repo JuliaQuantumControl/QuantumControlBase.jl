@@ -4,7 +4,7 @@ CurrentModule = QuantumControlBase
 
 # QuantumControlBase
 
-Documentation for [QuantumControlBase](https://github.com/quantumcontrol-jl/QuantumControlBase.jl).
+Documentation for [QuantumControlBase](https://github.com/JuliaQuantumControl/QuantumControlBase.jl).
 
 ```@index
 ```

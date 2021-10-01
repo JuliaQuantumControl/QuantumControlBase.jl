@@ -6,11 +6,11 @@ DocMeta.setdocmeta!(QuantumControlBase, :DocTestSetup, :(using QuantumControlBas
 makedocs(;
     modules=[QuantumControlBase],
     authors="Michael Goerz <mail@michaelgoerz.net>, Alastair Marshall <alastair@nvision-imaging.com>, and contributors",
-    repo="https://github.com/quantumcontrol-jl/QuantumControlBase.jl/blob/{commit}{path}#{line}",
+    repo="https://github.com/JuliaQuantumControl/QuantumControlBase.jl/blob/{commit}{path}#{line}",
     sitename="QuantumControlBase.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://QuantumControl-jl.github.io/QuantumControlBase.jl",
+        canonical="https://juliaquantumcontrol.github.io/QuantumControlBase.jl",
         assets=String[],
     ),
     pages=[
@@ -19,5 +19,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/QuantumControl-jl/QuantumControlBase.jl",
+    repo="github.com/JuliaQuantumControl/QuantumControlBase.jl",
 )
