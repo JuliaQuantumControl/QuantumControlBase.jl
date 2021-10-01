@@ -42,6 +42,8 @@ jobs:
             using Pkg
             println("Dev-install QuantumPropagators")
             Pkg.develop(url="https://github.com/QuantumControl-jl/QuantumPropagators.jl.git#master")
+            println("Dev-install QuantumControl")
+            Pkg.develop(url="https://github.com/QuantumControl-jl/QuantumControl.jl.git#master")
             println("Pkg.instantiate()")
             Pkg.instantiate()'
       - run: |
@@ -52,7 +54,7 @@ jobs:
             Pkg.test(coverage=true)'
       - run: |
           # Run upstream "Krotov" tests
-          julia --project=@. -e '
+          julia --project=@. --threads auto -e '
             using Pkg
             Pkg.activate(".")
             Pkg.develop(url="https://github.com/QuantumControl-jl/Krotov.jl.git#master")
@@ -75,6 +77,8 @@ jobs:
             using Pkg
             println("Dev-install QuantumPropagators")
             Pkg.develop(url="https://github.com/QuantumControl-jl/QuantumPropagators.jl.git#master")
+            println("Dev-install QuantumControl")
+            Pkg.develop(url="https://github.com/QuantumControl-jl/QuantumControl.jl.git#master")
             println("Dev-install package")
             Pkg.develop(PackageSpec(path=pwd()))
             println("Pkg.instantiate()")
@@ -88,7 +92,7 @@ jobs:
             doctest(QuantumControlBase)'
       - run: |
           # Make documentation
-          julia --project=docs docs/make.jl
+          julia --threads auto --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
