@@ -39,13 +39,14 @@ function obj_genfunc(
 end
 
 
-"""Propagate the initial state of a control objective.
+"""Propagate with the dynamical generator of a control objective.
 
 ```julia
-propagate(obj, tlist; method=:auto, controls_map=IdDict(), kwargs...)
+propagate(obj, tlist; method=:auto, initial_state=obj.initial_state,
+          controls_map=IdDict(), kwargs...)
 ```
 
-propagates `obj.initial_state` under the dynamics described by `obj.generator`.
+propagates `initial_state` under the dynamics described by `obj.generator`.
 
 The optional dict `control_map` may be given to replace the controls in
 `obj.generator` (as obtained by [`getcontrols`](@ref)) with custom functions or
@@ -55,27 +56,33 @@ All other `kwargs` are forwarded to the underlying `propagate` method for
 `obj.initial_state`.
 """
 function QuantumPropagators.propagate(
-    obj::AbstractControlObjective, tlist; method=Val(:auto), controls_map=IdDict(), kwargs...
+    obj::AbstractControlObjective, tlist; method=Val(:auto),
+    initial_state=obj.initial_state, controls_map=IdDict(), kwargs...
 )
-    return propagate_objective(obj, tlist, method;
+    return propagate_objective(obj, tlist, method; initial_state=initial_state,
                                controls_map=controls_map, kwargs...)
 end
 
 
 function propagate_objective(
-    obj::AbstractControlObjective, tlist, method::Symbol; controls_map=IdDict(), kwargs...
+    obj::AbstractControlObjective, tlist, method::Symbol; initial_state,
+    controls_map=IdDict(), kwargs...
 )
     return propagate_objective(obj, tlist, Val(method);
+                               initial_state=initial_state,
                                controls_map=controls_map, kwargs...)
 end
 
 
 function propagate_objective(
-    obj::AbstractControlObjective, tlist, method::Val; controls_map=IdDict(), kwargs...
+    obj::AbstractControlObjective, tlist, method::Val; initial_state,
+    controls_map=IdDict(), kwargs...
 )
-    wrk = initobjpropwrk(obj, tlist, method; kwargs...)
+    wrk = initobjpropwrk(obj, tlist, method; initial_state=initial_state,
+                         kwargs...)
     return propagate_objective_with_wrk(
-        obj, tlist, wrk; controls_map=controls_map, kwargs...
+        obj, tlist, wrk; initial_state=initial_state,
+        controls_map=controls_map, kwargs...
     )
 
 end
@@ -101,11 +108,11 @@ initializes a workspace for the propagation of
 an[`AbstractControlObjective`](@ref).
 """
 function initobjpropwrk(
-    obj::AbstractControlObjective, tlist, method::Val; kwargs...
+    obj::AbstractControlObjective, tlist, method::Val;
+    initial_state=obj.initial_state, kwargs...
 )
     # This doesn't extend QuantumPropagators.initpropwrk directly, because it
     # would lead to an "ambiguous method"
-    state = obj.initial_state
     controls = getcontrols(obj.generator)
     controlvals = [discretize(control, tlist) for control in controls]
     # We'll construct some examplary dynamical generators. This is mainly for
@@ -128,33 +135,34 @@ function initobjpropwrk(
     )
     G_min = setcontrolvals(obj.generator, min_vals)
     return QuantumPropagators.initpropwrk(
-        state, tlist, method, G_zero, G_max, G_min; kwargs...
+        initial_state, tlist, method, G_zero, G_max, G_min; kwargs...
     )
 end
 
 
 function initobjpropwrk(
-    obj::AbstractControlObjective, tlist, method::Symbol; kwargs...
+    obj::AbstractControlObjective, tlist, method::Symbol; initial_state,
+    kwargs...
 )
-    return  initobjpropwrk(obj, tlist, Val(method); kwargs...)
+    return  initobjpropwrk(obj, tlist, Val(method); initial_state=initial_state, kwargs...)
 end
 
 
 function initobjpropwrk(
-    obj::AbstractControlObjective, tlist, method::Val{:newton}; kwargs...
+    obj::AbstractControlObjective, tlist, method::Val{:newton}; initial_state,
+    kwargs...
 )
-    state = obj.initial_state
     return QuantumPropagators.initpropwrk(
-        state, tlist, method; kwargs...
+        initial_state, tlist, method; kwargs...
     )
 end
 
 
 function initobjpropwrk(
-    obj::AbstractControlObjective, tlist, method::Val{:expprop}; kwargs...
+    obj::AbstractControlObjective, tlist, method::Val{:expprop}; initial_state,
+    kwargs...
 )
-    state = obj.initial_state
     return QuantumPropagators.initpropwrk(
-        state, tlist, method; kwargs...
+        initial_state, tlist, method; kwargs...
     )
 end
