@@ -3,6 +3,7 @@ using QuantumPropagators
 using QuantumControlBase
 using LinearAlgebra
 using Distributions
+using QuantumControlBase.TestUtils
 
 
 @testset "TLS dissipation" begin
@@ -49,19 +50,6 @@ end
 @testset "LvN" begin
 
     N = 100
-
-    function random_hermitian_matrix(N, ρ)
-        σ = 1/√N
-        d = Normal(0.0, σ)
-        X = rand(d, (N, N))
-        return ρ * (X + X') / (2*√2)
-    end
-
-    function random_state_vector(N)
-        Ψ = rand(N) .* exp.((2π * im) .* rand(N))
-        Ψ ./= norm(Ψ)
-        return Ψ
-    end
 
     function ket(i)
         Ψ = zeros(ComplexF64, N)
