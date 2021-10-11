@@ -7,7 +7,7 @@ include("propagate.jl")
 export obj_genfunc
 
 include("controls.jl")
-export discretize, discretize_on_midpoints, setcontrolvals, setcontrolvals!
+export discretize, discretize_on_midpoints, evalcontrols, evalcontrols!
 export get_control_parameters, getcontrols, getcontrolderiv, getcontrolderivs
 
 include("liouvillian.jl")

@@ -25,13 +25,13 @@ function obj_genfunc(
     ]
 
     zero_vals = IdDict(control => 0 for control in controls)
-    G = setcontrolvals(obj.generator, zero_vals)
+    G = evalcontrols(obj.generator, zero_vals)
 
     function genfunc(tlist, i; kwargs...)
         vals_dict = IdDict(
             control => pulses[j][i] for (j, control) in enumerate(controls)
         )
-        setcontrolvals!(G, obj.generator, vals_dict)
+        evalcontrols!(G, obj.generator, vals_dict)
         return G
     end
 
@@ -123,17 +123,17 @@ function initobjpropwrk(
         control => zero(controlvals[i][1])
         for (i, control) in enumerate(controls)
     )
-    G_zero = setcontrolvals(obj.generator, zero_vals)
+    G_zero = evalcontrols(obj.generator, zero_vals)
     max_vals = IdDict(
         control => maximum(controlvals[i])
         for (i, control) in enumerate(controls)
     )
-    G_max = setcontrolvals(obj.generator, max_vals)
+    G_max = evalcontrols(obj.generator, max_vals)
     min_vals = IdDict(
         control => minimum(controlvals[i])
         for (i, control) in enumerate(controls)
     )
-    G_min = setcontrolvals(obj.generator, min_vals)
+    G_min = evalcontrols(obj.generator, min_vals)
     return QuantumPropagators.initpropwrk(
         initial_state, tlist, method, G_zero, G_max, G_min; kwargs...
     )

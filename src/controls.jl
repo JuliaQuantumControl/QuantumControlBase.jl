@@ -204,20 +204,19 @@ function getcontrols(objectives::Vector{T}) where {T<:AbstractControlObjective}
 end
 
 
-"""Construct `G` by plugging values into a general generator.
+"""Replace the controls in `generator` with static values.
 
 ```julia
-G = setcontrolvals(generator, vals_dict)
-setcontrolvals!(G, generator, vals_dict)
+G = evalcontrols(generator, vals_dict)
 ```
 
-evaluates the *specific* dynamical generator `G` by plugging in values into the
-general `generator` according to `vals_dict`.
+replaces the time-dependent controls in `generator` with the values in
+`vals_dict` and returns the static operator `G`.
 
 The `vals_dict` is a dictionary (`IdDict`) mapping controls as returned by
 `getcontrols(generator)` to values.
 """
-function setcontrolvals(generator::Tuple, vals_dict::D) where D<:AbstractDict
+function evalcontrols(generator::Tuple, vals_dict::D) where D<:AbstractDict
     if isa(generator[1], Tuple)
         control = generator[1][2]
         G = vals_dict[control] * generator[1][1]
@@ -236,8 +235,15 @@ function setcontrolvals(generator::Tuple, vals_dict::D) where D<:AbstractDict
 end
 
 
-"""In-place version of [`setcontrolvals`](@ref)."""
-function setcontrolvals!(G, generator::Tuple, vals_dict::D) where D<:AbstractDict
+"""In-place version of [`evalcontrols`](@ref).
+
+```julia
+evalcontrols!(G, generator, vals_dict)
+```
+
+acts as [`evalcontrols`](@ref), but modifies `G` in-place.
+"""
+function evalcontrols!(G, generator::Tuple, vals_dict::D) where D<:AbstractDict
     if isa(generator[1], Tuple)
         control = generator[1][2]
         G .= vals_dict[control] * generator[1][1]
