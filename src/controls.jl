@@ -256,6 +256,72 @@ function setcontrolvals!(G, generator::Tuple, vals_dict::D) where D<:AbstractDic
 end
 
 
+"""Get a vector of the derivatives of `generator` w.r.t. each control.
+
+```julia
+getcontrolderivs(generator, controls)
+```
+
+return as vector containing the derivative of `generator` with respect to each
+control in `controls`. The elements of the vector are either `nothing` if
+`generator` does not depend on that particular control, or a function `μ(α)`
+that evaluates the derivative for a particular value of the control, see
+[`getcontrolderiv`](@ref).
+"""
+function getcontrolderivs(generator, controls)
+    controlderivs = Vector{Union{Function, Nothing}}(nothing, length(controls))
+    for (i, control) in enumerate(controls)
+        controlderivs[i] = getcontrolderiv(generator, control)
+    end
+    return controlderivs
+end
+
+
+@doc raw"""
+Get the derivative of the generator ``G`` w.r.t. the control ``ϵ(t)``.
+
+```julia
+μ  = getcontrolderiv(generator, control)
+```
+
+returns `nothing` if the `generator` (Hamiltonian or Liouvillian) does not
+depend on `control`, or a function `μ(v)` that evaluates
+
+```math
+μ(v) = \left.\frac{∂G}{∂ϵ(t)}\right\vert_{ϵ(t)=v}
+```
+
+otherwise. That is, a call `μ(v)` will return the static operator resulting
+from evaluating the derivative of the dynamical generator ``G`` with respect to
+the control filed ``ϵ(t)`` at a particular point in time where the control
+field takes the value ``v``.
+
+Note that for the common case of linear control terms, e.g., ``Ĥ = Ĥ_0 + \sum_l
+ϵ_l(t) Ĥ_l``, the derivative ``∂Ĥ/∂ϵ_l(t)`` is simply the control Hamiltonian
+``Ĥ_l``. Thus, the resulting function `μ` will simply return ``Ĥ_l``, ignoring
+the argument `v`.
+"""
+function getcontrolderiv(generator::Tuple, control)
+    control_generator = nothing
+    for part in generator
+        if isa(part, Tuple)
+            if part[2] === control
+                if isnothing(control_generator)
+                    control_generator = part[1]
+                else
+                    control_generator += part[1]
+                end
+            end
+        end
+    end
+    if isnothing(control_generator)
+        return nothing
+    else
+        return v -> control_generator
+    end
+end
+
+
 """Collect all control parameters from the given objectives.
 
 ```julia

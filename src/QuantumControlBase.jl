@@ -8,7 +8,7 @@ export obj_genfunc
 
 include("controls.jl")
 export discretize, discretize_on_midpoints, setcontrolvals, setcontrolvals!
-export get_control_parameters, getcontrols
+export get_control_parameters, getcontrols, getcontrolderiv, getcontrolderivs
 
 include("liouvillian.jl")
 export liouvillian
