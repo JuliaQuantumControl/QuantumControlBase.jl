@@ -11,7 +11,7 @@ export discretize, discretize_on_midpoints, evalcontrols, evalcontrols!
 export get_control_parameters, getcontrols, getcontrolderiv, getcontrolderivs
 
 include("gradgen.jl")
-export TimeDependentGradGenerator, GradVector, resetgradvec!
+export TimeDependentGradGenerator, GradVector, GradGenerator, resetgradvec!
 
 include("liouvillian.jl")
 export liouvillian
