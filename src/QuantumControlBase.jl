@@ -10,6 +10,9 @@ include("controls.jl")
 export discretize, discretize_on_midpoints, evalcontrols, evalcontrols!
 export get_control_parameters, getcontrols, getcontrolderiv, getcontrolderivs
 
+include("gradgen.jl")
+export TimeDependentGradGenerator, GradVector, resetgradvec!
+
 include("liouvillian.jl")
 export liouvillian
 

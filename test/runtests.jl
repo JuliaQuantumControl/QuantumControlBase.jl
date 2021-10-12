@@ -16,6 +16,9 @@ using SafeTestsets
     print("\n* Liouvillian (test_liouvillian.jl):")
     @time @safetestset "Liouvillian" begin include("test_liouvillian.jl") end
 
+    print("\n* GradGenerator (test_gradgen.jl):")
+    @time @safetestset "GradGenerator" begin include("test_gradgen.jl") end
+
     print("\n")
 
 end
