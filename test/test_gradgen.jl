@@ -17,9 +17,10 @@ using Zygote
     ϵ₂ = t->1.0
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     Ψ = random_state_vector(N)
+    ψ_max = maximum(abs.(Ψ))
     Ψtgt = random_state_vector(N)
     𝕚 = 1im
-    dt  = 1.0  # TODO: try with ≠ 1.0
+    dt  = 1.25
 
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
 
@@ -36,9 +37,11 @@ using Zygote
     @test norm(Ψ̃.grad_states[2]) == 0.0
     @test length(Ψ̃.grad_states) == 2
 
+    @test maximum(abs.(Ψ)) == ψ_max  # is Ψ still exactly the same state?
     wrk = NewtonWrk(Ψ̃)
     newton!(Ψ̃, G̃, dt, wrk)
     Ψ̃_out = copy(Ψ̃)
+    @test maximum(abs.(Ψ)) == ψ_max  # is Ψ still exactly the same state?
     @test norm(Ψ̃_out.state - Û_Ψ) < 1e-12  # Ψ̃_out.state correct?
     @test norm(Ψ̃_out.grad_states[1]) > 0
     @test norm(Ψ̃_out.grad_states[2]) > 0
@@ -73,12 +76,12 @@ using Zygote
 
     Ψ̃_out_full = exp(-𝕚 * G̃_full * dt) * Ψ̃_full
     # propagation correct?
-    @test_broken norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-12
+    @test norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-12
 
     # do we get the same results as from newton?
-    @test_broken norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-12
-    @test_broken norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-12
-    @test_broken norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-12
+    @test norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-12
+    @test norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-12
+    @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-12
 
     ###########################################################################
     # Compare against explicit split-up Grad-Gens
@@ -92,6 +95,7 @@ using Zygote
                    hcat(Zero, Ĥ))
     Ψ̃_full1 = vcat(Ψ̃.grad_states[1],
                    Ψ̃.state)
+    @test maximum(abs.(Ψ)) == ψ_max  # is Ψ still exactly the same state?
     @test norm(Ψ̃_full1) == norm(Ψ)  # initialization correct?
     Ψ̃_full2 = vcat(Ψ̃.grad_states[2],
                    Ψ̃.state)
@@ -100,8 +104,8 @@ using Zygote
     Ψ̃_out_full2 = exp(-𝕚 * G̃_full2 * dt) * Ψ̃_full2
 
     # propagation correct?
-    @test_broken norm(Ψ̃_out_full1[N+1:2N] - Û_Ψ) < 1e-12
-    @test_broken norm(Ψ̃_out_full2[N+1:2N] - Û_Ψ) < 1e-12
+    @test norm(Ψ̃_out_full1[N+1:2N] - Û_Ψ) < 1e-12
+    @test norm(Ψ̃_out_full2[N+1:2N] - Û_Ψ) < 1e-12
 
     # do we get the same results as with the combined grad-gen?
     @test norm(Ψ̃_out_full1[1:N] - Ψ̃_out_full[1:N]) < 1e-12
@@ -124,8 +128,8 @@ using Zygote
     # For ∂F/∂τ see Eq. (3.47) of Phd Thesis of Michael Goerz
     grad = [2*real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[1])),
             2*real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[2]))]
-    @test_broken abs(grad_zygote[1] - grad[1]) < 1e-12
-    @test_broken abs(grad_zygote[2] - grad[2]) < 1e-12
+    @test abs(grad_zygote[1] - grad[1]) < 1e-10
+    @test abs(grad_zygote[2] - grad[2]) < 1e-10
 
     ###########################################################################
     # Compare against Taylor series
@@ -136,7 +140,6 @@ using Zygote
     """Evaluate ∂/∂ϵ exp(-𝕚 Ĥ dt) via a Taylor expansion."""
     function U_grad(Ĥ, μ̂, dt)
         # See Eq. (14) in de Fouquieres et. al, JMR 212, 412 (2011)
-        # TODO: this is probably wrong
         Û = exp(-𝕚 * Ĥ * dt)
         converged = false
         Ĉ = μ̂
@@ -155,7 +158,7 @@ using Zygote
     grad_taylor = [U_grad(Ĥ, Ĥ₁, dt) * Ψ,
                    U_grad(Ĥ, Ĥ₂, dt) * Ψ]
 
-    @test_broken norm(Ψ̃_out.grad_states[1] - grad_taylor[1]) < 1e-10
-    @test_broken norm(Ψ̃_out.grad_states[2] - grad_taylor[2]) < 1e-10
+    @test norm(Ψ̃_out.grad_states[1] - grad_taylor[1]) < 1e-10
+    @test norm(Ψ̃_out.grad_states[2] - grad_taylor[2]) < 1e-10
 
 end

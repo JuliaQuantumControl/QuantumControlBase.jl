@@ -128,7 +128,7 @@ function GradVector(Ψ::T, num_controls::Int64) where T
     for i = 1 : num_controls
         fill!(grad_states[i], 0.0)
     end
-    GradVector{T}(Ψ, grad_states)
+    GradVector{T}(copy(Ψ), grad_states)
 end
 
 
