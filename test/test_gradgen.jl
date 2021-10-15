@@ -84,6 +84,18 @@ using Zygote
     @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-12
 
     ###########################################################################
+    # Test custom expprop
+
+    wrk_exp = initpropwrk(Ψ̃, [0, dt], Val(:expprop), G̃)
+    propstep!(Ψ̃, G̃, dt, wrk_exp)
+    Ψ̃_out_exp = copy(Ψ̃)
+    @test norm(wrk_exp.Ψ_full - Ψ̃_full) ≈ 0.0
+    @test norm(wrk_exp.G_full - G̃_full) ≈ 0.0
+    @test norm(Ψ̃_out_exp - Ψ̃_out) < 1e-12
+    resetgradvec!(Ψ̃, Ψ)
+
+
+    ###########################################################################
     # Compare against explicit split-up Grad-Gens
     # This checks whether the extension of the Gradient-Vector to multiple
     # controls is correct (the literature generally only gives the expression

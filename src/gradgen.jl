@@ -1,4 +1,6 @@
 import LinearAlgebra
+import QuantumPropagators
+import Base: -
 
 @doc raw"""Extended generator for the standard dynamic gradient.
 
@@ -233,4 +235,107 @@ function Base.fill!(Ψ::GradVector, v)
     for i = 1:length(Ψ.grad_states)
         Base.fill!(Ψ.grad_states[i], v)
     end
+end
+
+
+function -(Ψ::GradVector, Φ::GradVector)
+    res = copy(Ψ)
+    LinearAlgebra.axpy!(-1, Φ.state, res.state)
+    for i = 1:length(Ψ.grad_states)
+        LinearAlgebra.axpy!(-1, Φ.grad_states[i], res.grad_states[i])
+    end
+    return res
+end
+
+
+struct DenseGradExpPropWrk{T}
+    Ψ_full :: Vector{ComplexF64}
+    Φ_full :: Vector{ComplexF64}
+    G_full :: Matrix{T}
+    function DenseGradExpPropWrk(
+            Ψ̃::GradVector{Vector{ComplexF64}},
+            G̃::GradGenerator{Matrix{T}, Matrix{T}}) where T
+        Ψ_full = convert_gradvec_to_dense(Ψ̃)
+        Φ_full = similar(Ψ_full)
+        G_full = convert_gradgen_to_dense(G̃)
+        new{T}(Ψ_full, Φ_full, G_full)
+    end
+end
+
+
+function QuantumPropagators.initpropwrk(
+        state::GradVector{Vector{ComplexF64}},
+        tlist,
+        method::Val{:expprop},
+        generator::Vararg{GradGenerator{Matrix{T}, Matrix{T}}};
+        kwargs...) where T
+    return DenseGradExpPropWrk(state, generator[1])
+end
+
+
+@inline function convert_gradgen_to_dense(G)
+    N = size(G.G)[1]
+    L = length(G.control_derivs)
+    G_full = zeros(eltype(G.G), N*(L+1), N*(L+1))
+    convert_gradgen_to_dense!(G_full, G)
+end
+
+
+@inline function convert_gradgen_to_dense!(G_full, G)
+    N = size(G.G)[1]
+    L = length(G.control_derivs)
+    @inbounds for i = 1:L+1
+        G_full[(i-1)*N + 1 : i*N, (i-1)*N + 1 : i*N] .= G.G
+    end
+    # Set the control-derivatives in the last (block-)column
+    @inbounds for i = 1:L
+        G_full[(i-1)*N + 1 : i*N, L*N + 1 : (L+1)*N]  .= G.control_derivs[i]
+    end
+    return G_full
+end
+
+
+@inline function convert_gradvec_to_dense(Ψ)
+    N = length(Ψ.state)
+    L = length(Ψ.grad_states)
+    Ψ_full = zeros(ComplexF64, N*(L+1))
+    convert_gradvec_to_dense!(Ψ_full, Ψ)
+end
+
+
+@inline function convert_gradvec_to_dense!(Ψ_full, Ψ)
+    N = length(Ψ.state)
+    L = length(Ψ.grad_states)
+    @inbounds for i = 1:L
+        Ψ_full[(i-1)*N + 1 : i*N] .= Ψ.grad_states[i]
+    end
+    @inbounds Ψ_full[L*N + 1: (L+1)*N] .= Ψ.state
+    return Ψ_full
+end
+
+
+@inline function convert_dense_to_gradvec!(Ψ, Ψ_full)
+    N = length(Ψ.state)
+    L = length(Ψ.grad_states)
+    @inbounds for i = 1:L
+        Ψ.grad_states[i] .= Ψ_full[(i-1)*N + 1 : i*N]
+    end
+    @inbounds Ψ.state .= Ψ_full[L*N + 1: (L+1)*N]
+    return Ψ
+end
+
+
+function QuantumPropagators.propstep!(
+        Ψ̃::GradVector{Vector{ComplexF64}},
+        G̃::GradGenerator{Matrix{T}, Matrix{T}},
+        dt::Float64,
+        wrk::DenseGradExpPropWrk;
+        kwargs...) where T
+    func = get(kwargs, :func, H_dt -> exp(-1im * H_dt))
+    convert_gradgen_to_dense!(wrk.G_full, G̃)
+    convert_gradvec_to_dense!(wrk.Ψ_full, Ψ̃)
+    U = func(wrk.G_full*dt)
+    LinearAlgebra.mul!(wrk.Φ_full, U, wrk.Ψ_full)
+    convert_dense_to_gradvec!(Ψ̃, wrk.Φ_full)
+    return Ψ̃
 end
