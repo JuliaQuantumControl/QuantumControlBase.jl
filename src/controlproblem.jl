@@ -97,9 +97,8 @@ The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
 struct ControlProblem{OT<:AbstractControlObjective, OPT<:AbstractDict, KWT}
-    # TODO: `pulse_options` is not a good name
     objectives :: Vector{OT}
-    pulse_options :: OPT
+    pulse_options :: OPT # TODO: make this optional?
     tlist :: Vector{Float64}
     kwargs :: KWT
     function ControlProblem(;objectives, pulse_options, tlist, kwargs...)

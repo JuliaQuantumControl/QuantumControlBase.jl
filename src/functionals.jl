@@ -91,6 +91,22 @@ function J_T_sm(ϕ, objectives; τ=nothing)
 end
 
 
+"""Gradient for [`J_T_sm`](@ref)."""
+function grad_J_T_sm!(G, τ, ∇τ)
+    N = length(τ) # number of objectives
+    L, N_T = size(∇τ[1])  # number of controls/time intervals
+    G′ = reshape(G, L, N_T)  # writing to G′ modifies G
+    for l = 1:L
+        for n = 1:N_T
+            G′[l, n] = real(sum([conj(τ[k′]) * ∇τ[k][l, n]
+                                 for k′=1:N for k=1:N]))
+        end
+    end
+    lmul!(-2/N, G)
+    return G
+end
+
+
 """Krotov-states χ for functional [`J_T_sm`](@ref).
 
 ```julia
