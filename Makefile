@@ -18,7 +18,6 @@ Make sure you have Revise.jl installed in your standard Julia environment
 endef
 export PRINT_HELP_PYSCRIPT
 
-
 help:  ## show this help
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
@@ -33,7 +32,6 @@ endef
 export DEV_PACKAGES
 
 define ENV_PACKAGES
-using Pkg;
 $(DEV_PACKAGES)
 Pkg.develop(PackageSpec(path=pwd()));
 Pkg.instantiate()
@@ -45,14 +43,13 @@ Manifest.toml: Project.toml $(QUANTUMPROPAGATORS)/Project.toml
 	julia --project=. -e "$$DEV_PACKAGES;Pkg.instantiate()"
 
 
+test:  test/Manifest.toml  ## Run the test suite
+	julia --project=test --threads auto --color=auto --startup-file=yes --code-coverage="user" --depwarn="yes" --check-bounds="yes" -e 'include("test/runtests.jl")'
+	@echo "Done. Consider using 'make devrepl'"
+
+
 test/Manifest.toml: test/Project.toml
 	julia --project=test -e "$$ENV_PACKAGES"
-
-
-test:  Manifest.toml  ## Run the test suite
-	@rm -f test/Manifest.toml  # Pkg.test cannot handle existing Manifest.toml
-	julia --startup-file=yes -e 'using Pkg;Pkg.activate(".");Pkg.test(coverage=true)'
-	@echo "Done. Consider using 'make devrepl'"
 
 
 devrepl: test/Manifest.toml ## Start an interactive REPL for testing and building documentation
