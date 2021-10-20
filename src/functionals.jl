@@ -102,7 +102,7 @@ function grad_J_T_sm!(G, τ, ∇τ)
                                  for k′=1:N for k=1:N]))
         end
     end
-    lmul!(-2/N, G)
+    lmul!(-2/N^2, G)
     return G
 end
 
