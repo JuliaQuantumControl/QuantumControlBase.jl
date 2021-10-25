@@ -19,6 +19,9 @@ using SafeTestsets
     print("\n* GradGenerator (test_gradgen.jl):")
     @time @safetestset "GradGenerator" begin include("test_gradgen.jl") end
 
+    print("\n* Infohook (test_infohook.jl):")
+    @time @safetestset "Infohook" begin include("test_infohook.jl") end
+
     print("\n")
 
 end
