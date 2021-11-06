@@ -26,6 +26,9 @@ export grad_J_T_sm!
 include("infohook.jl")
 export chain_infohooks
 
+include("optimize.jl")
+export optimize
+
 # Submodules:
 
 include("conditionalthreads.jl")
