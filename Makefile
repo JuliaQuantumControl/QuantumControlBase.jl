@@ -38,30 +38,32 @@ Pkg.instantiate()
 endef
 export ENV_PACKAGES
 
+JULIA ?= julia
+
 
 Manifest.toml: Project.toml $(QUANTUMPROPAGATORS)/Project.toml
-	julia --project=. -e "$$DEV_PACKAGES;Pkg.instantiate()"
+	$(JULIA) --project=. -e "$$DEV_PACKAGES;Pkg.instantiate()"
 
 
 test:  test/Manifest.toml  ## Run the test suite
-	julia --project=test --threads auto --color=auto --startup-file=yes --code-coverage="user" --depwarn="yes" --check-bounds="yes" -e 'include("test/runtests.jl")'
+	$(JULIA) --project=test --threads auto --color=auto --startup-file=yes --code-coverage="user" --depwarn="yes" --check-bounds="yes" -e 'include("test/runtests.jl")'
 	@echo "Done. Consider using 'make devrepl'"
 
 
 test/Manifest.toml: test/Project.toml
-	julia --project=test -e "$$ENV_PACKAGES"
+	$(JULIA) --project=test -e "$$ENV_PACKAGES"
 
 
 devrepl: test/Manifest.toml ## Start an interactive REPL for testing and building documentation
-	@julia --project=test --banner=no --startup-file=yes -e 'include("test/init.jl")' -i
+	@$(JULIA) --project=test --banner=no --startup-file=yes -e 'include("test/init.jl")' -i
 
 
 docs/Manifest.toml: docs/Project.toml
-	julia --project=docs -e "$$ENV_PACKAGES"
+	$(JULIA) --project=docs -e "$$ENV_PACKAGES"
 
 
 docs: docs/Manifest.toml ## Build the documentation
-	julia --project=docs docs/make.jl
+	$(JULIA) --project=docs docs/make.jl
 	@echo "Done. Consider using 'make devrepl'"
 
 
