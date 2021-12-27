@@ -34,7 +34,7 @@ using UnicodePlots
 
     tlist = collect(range(0, 5, length=500));
 
-    states = propagate(obj, tlist, storage=true)
+    states = propagate_objective(obj, tlist, storage=true)
 
     pops = abs.(states).^2
     pop0 = pops[1,:]
