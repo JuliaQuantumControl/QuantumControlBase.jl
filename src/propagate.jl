@@ -53,7 +53,7 @@ end
 function get_objective_prop_method(obj, symbols...; kwargs...)
     for symbol in symbols
         if symbol ∈ keys(kwargs)
-            return Symbol(getproperty(obj, symbol))
+            return kwargs[symbol]
         elseif symbol ∈ propertynames(obj)
             return Symbol(getproperty(obj, symbol))
         end
@@ -87,7 +87,7 @@ function propagate_objective(obj, tlist;
 )
     method = :auto
     if :method in keys(kwargs)
-        method = get(kwargs, :method)
+        method = kwargs[:method]
     else
         for symbol ∈ (:prop_method, :fw_prop_method)
             if symbol ∈ propertynames(obj)
