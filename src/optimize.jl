@@ -4,8 +4,9 @@
 opt_result = optimize(problem; method=<method>, kwargs...)
 ```
 
-optimizes towards a solution of given `problem` with the given optimization
-`method`. All keyword arguments update (overwrite) parameters in `problem`
+optimizes towards a solution of given [`problem`](@ref ControlProblem) with the
+given optimization `method`. All keyword arguments update (overwrite)
+parameters in `problem`.
 """
 optimize(problem::ControlProblem; method, kwargs...) = optimize(problem, method; kwargs...)
 optimize(problem::ControlProblem, method::Symbol; kwargs...) = optimize(problem, Val(method); kwargs...)
