@@ -1,4 +1,13 @@
+module Functionals
+
+export F_ss, J_T_ss, chi_ss!, F_sm, J_T_sm, chi_sm!, F_re, J_T_re, chi_re!
+export grad_J_T_sm!
+
+import ..WeightedObjective
+
+
 using LinearAlgebra
+
 
 """Average complex overlap of the target states with forward-propagated states.
 
@@ -176,4 +185,6 @@ function chi_re!(χ, ϕ, objectives; τ=nothing)
         w = isa(obj, WeightedObjective) ? obj.weight : 1.0
         lmul!(w/(2N), χ[k])
     end
+end
+
 end

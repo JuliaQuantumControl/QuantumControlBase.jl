@@ -1,4 +1,6 @@
-"""A collection of common control shape functions."""
+module Shapes
+
+export flattop, box, blackman
 
 
 @doc raw"""Flat shape (one) with a switch-on/switch-off from zero.
@@ -102,4 +104,7 @@ function blackman(t, t₀, T; a=0.16)
         * box(t, t₀, T)
         * (1.0 - a - cos(2π * (t - t₀) / ΔT) + a * cos(4π * (t - t₀) / ΔT))
     )
+end
+
+
 end

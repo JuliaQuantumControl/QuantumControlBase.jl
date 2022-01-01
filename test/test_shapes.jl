@@ -1,5 +1,5 @@
 using Test
-using QuantumControlBase
+using QuantumControlBase.Shapes
 
 
 @testset "flattop-blackman" begin

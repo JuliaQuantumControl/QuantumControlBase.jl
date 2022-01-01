@@ -2,14 +2,14 @@
 
 import QuantumPropagators
 
-"""Construct a `genfunc` suitable for [`propagate`](@ref) from an objective.
+"""Construct a `genfunc` suitable for propagating an objective.
 
 ```julia
 genfunc = objective_genfunc(obj, tlist; controls_map=IdDict())
 ```
 
-can be passed to [`propagate`](@ref) to propagate under the dynamical generator
-in `obj`. If given, `controls_map` defines replacements for the control
+can be passed to [`QuantumPropagators.propagate`](@ref) to propagate under the
+dynamical generator in `obj`.
 
 If given, `control_map` defines replacements for the controls in
 `obj.generator`. This allows, e.g., to replace the controls with those

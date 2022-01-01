@@ -1,5 +1,6 @@
 using Test
 using QuantumControlBase
+using QuantumControlBase.Shapes: blackman
 
 @testset "discretize/discretize_on_midpoints" begin
     tlist = collect(range(0, 10, length=20))

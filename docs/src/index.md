@@ -19,5 +19,5 @@ The [QuantumControlBase](https://github.com/JuliaQuantumControl/QuantumControlBa
 ## Reference
 
 ```@autodocs
-Modules = [QuantumControlBase, QuantumControlBase.ConditionalThreads, QuantumControlBase.TestUtils]
+Modules = [QuantumControlBase, QuantumControlBase.Shapes, QuantumControlBase.Functionals, QuantumControlBase.ConditionalThreads, QuantumControlBase.TestUtils]
 ```

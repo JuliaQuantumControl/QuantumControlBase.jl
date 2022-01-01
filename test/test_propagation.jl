@@ -1,6 +1,7 @@
 using Test
 using QuantumPropagators
 using QuantumControlBase
+using QuantumControlBase.Shapes: flattop
 using UnicodePlots
 
 @testset "propagate TLS" begin
