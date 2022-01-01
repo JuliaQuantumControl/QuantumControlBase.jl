@@ -1,4 +1,5 @@
 using QuantumControlBase
+using QuantumPropagators
 using Documenter
 
 DocMeta.setdocmeta!(QuantumControlBase, :DocTestSetup, :(using QuantumControlBase); recursive=true)
@@ -14,6 +15,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        hide("QuantumPropagators" => "quantumpropagators.md"),
     ],
 )
 

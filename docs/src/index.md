@@ -14,6 +14,7 @@ The [QuantumControlBase](https://github.com/JuliaQuantumControl/QuantumControlBa
 ## Index
 
 ```@index
+Pages = ["index.md"]
 ```
 
 ## Reference

@@ -79,8 +79,8 @@ If `obj` has a property/field `prop_method` or `fw_prop_method`, its value will
 be used as the default for `method` instead of :auto. An explicit keyword
 argument for `method` always overrides the default.
 
-All other `kwargs` are forwarded to the underlying `propagate` method for
-`obj.initial_state`.
+All other `kwargs` are forwarded to the underlying
+[`QuantumPropagators.propagate`](@ref) method for `obj.initial_state`.
 """
 function propagate_objective(obj, tlist;
     initial_state=obj.initial_state, controls_map=IdDict(), kwargs...

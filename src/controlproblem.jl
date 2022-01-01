@@ -81,7 +81,7 @@ Note that the control problem can only be instantiated via keyword arguments.
 The `objectives` are a list of [`AbstractControlObjective`](@ref) instances,
 each defining an initial state and a dynamical generator for the evolution of
 that state. Usually, the objective will also include a target state (see
-[`Objective`](@ref)) and possibly a weight (see [`WeightedObjective`](@ref).
+[`Objective`](@ref)) and possibly a weight (see [`WeightedObjective`](@ref)).
 
 The `pulse_options` are a dictionary (`IdDict`) mapping controls that occur in
 the `objectives` to properties specific to the control method.
