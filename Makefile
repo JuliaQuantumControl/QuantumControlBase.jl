@@ -58,12 +58,8 @@ devrepl: test/Manifest.toml ## Start an interactive REPL for testing and buildin
 	@$(JULIA) --project=test --banner=no --startup-file=yes -e 'include("test/init.jl")' -i
 
 
-docs/Manifest.toml: docs/Project.toml
-	$(JULIA) --project=docs -e "$$ENV_PACKAGES"
-
-
-docs: docs/Manifest.toml ## Build the documentation
-	$(JULIA) --project=docs docs/make.jl
+docs: test/Manifest.toml ## Build the documentation
+	$(JULIA) --project=test docs/make.jl
 	@echo "Done. Consider using 'make devrepl'"
 
 

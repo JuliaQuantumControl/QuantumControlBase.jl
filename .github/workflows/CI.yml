@@ -75,7 +75,7 @@ jobs:
           version: '1'
       - run: |
           # Instantiate Pkg
-          julia --project=docs -e '
+          julia --project=test -e '
             using Pkg
             println("Dev-install QuantumPropagators")
             Pkg.develop(url="https://github.com/JuliaQuantumControl/QuantumPropagators.jl.git#master")
@@ -91,14 +91,14 @@ jobs:
             Pkg.instantiate()'
       - run: |
           # Run doctests
-          julia --project=docs -e '
+          julia --project=test -e '
             using Documenter: DocMeta, doctest
             using QuantumControlBase
             DocMeta.setdocmeta!(QuantumControlBase, :DocTestSetup, :(using QuantumControlBase); recursive=true)
             doctest(QuantumControlBase)'
       - run: |
           # Make documentation
-          julia --threads auto --project=docs docs/make.jl
+          julia --threads auto --project=test docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
