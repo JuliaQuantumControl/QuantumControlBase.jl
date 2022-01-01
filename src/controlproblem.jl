@@ -110,6 +110,16 @@ struct ControlProblem{OT<:AbstractControlObjective, OPT<:AbstractDict, KWT}
 end
 
 
+function Base.copy(problem::ControlProblem)
+    return ControlProblem(
+        objectives=problem.objectives,
+        pulse_options=problem.pulse_options,
+        tlist=problem.tlist;
+        problem.kwargs...
+    )
+end
+
+
 # adjoint for the nested-tuple dynamical generator (e.g. `(H0, (H1, ϵ))`)
 function dynamical_generator_adjoint(G::Tuple)
     result = []

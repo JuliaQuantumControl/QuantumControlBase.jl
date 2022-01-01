@@ -22,6 +22,9 @@ using SafeTestsets
     print("\n* Infohook (test_infohook.jl):")
     @time @safetestset "Infohook" begin include("test_infohook.jl") end
 
+    print("\n* Optimize-kwargs (test_optimize_kwargs.jl):")
+    @time @safetestset "Optimize-kwargs" begin include("test_optimize_kwargs.jl") end
+
     print("\n")
 
 end
