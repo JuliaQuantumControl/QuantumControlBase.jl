@@ -16,6 +16,7 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         hide("QuantumPropagators" => "quantumpropagators.md"),
+        "History" => "history.md",
     ],
 )
 
