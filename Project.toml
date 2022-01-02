@@ -1,7 +1,7 @@
 name = "QuantumControlBase"
 uuid = "f10a33bc-5a64-497c-be7b-6f86b4f0c2aa"
 authors = ["Michael Goerz <mail@michaelgoerz.net>", "Alastair Marshall <alastair@nvision-imaging.com>"]
-version = "0.0.2"
+version = "0.0.3+dev"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
