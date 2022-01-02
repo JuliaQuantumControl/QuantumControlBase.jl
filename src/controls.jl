@@ -169,9 +169,11 @@ Each control must be a valid argument for `discretize`.
 function getcontrols(generator::Tuple)
     controls = []
     slots_dict = IdDict()  # utilized as Set of controls we've seen
+    FuncOrVector = Union{Function, Vector}
     for (i, part) in enumerate(generator)
         if isa(part, Tuple)
             control = part[2]
+            control :: FuncOrVector  # assert correct type
             if control in keys(slots_dict)
                 # We've seen this control before, so we just record the slot
                 # where it is referenced

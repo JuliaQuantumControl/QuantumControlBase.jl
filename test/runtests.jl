@@ -10,6 +10,9 @@ using SafeTestsets
     print("\n* Discretization (test_discretization.jl):")
     @time @safetestset "Discretization" begin include("test_discretization.jl") end
 
+    print("\n* Controls (test_controls.jl):")
+    @time @safetestset "Controls" begin include("test_controls.jl") end
+
     print("\n* Propagation (test_propagation.jl):")
     @time @safetestset "Propagation" begin include("test_propagation.jl") end
 
