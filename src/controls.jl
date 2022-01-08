@@ -58,10 +58,32 @@ function discretize(control::Vector, tlist)
 end
 
 
+"""Shift time grid values the interval midpoints
+
+```julia
+tlist_midpoints = get_tlist_midpoints(tlist)
+```
+
+takes a vector `tlist` of length ``n`` and returns a vector of length ``n-1``
+containing the midpoint values of each interval. The intervals in `tlist` are
+not required to be uniform.
+"""
+function get_tlist_midpoints(tlist)
+    tlist_midpoints = zeros(eltype(tlist), length(tlist) - 1)
+    tlist_midpoints[1] = tlist[1]
+    tlist_midpoints[end] = tlist[end]
+    for i in 2:length(tlist_midpoints) - 1
+        dt = tlist[i+1] - tlist[i]
+        tlist_midpoints[i] = tlist[i] + 0.5 * dt
+    end
+    return tlist_midpoints
+end
+
+
 @doc raw"""
 Evaluate `control` at the midpoints of `tlist`.
 
-```
+```julia
 values = discretize_on_midpoints(control, tlist)
 ```
 
@@ -112,14 +134,7 @@ If `control` is a function, the function will be directly evaluated at the
 midpoints marked as `x` in the above diagram..
 """
 function discretize_on_midpoints(control::T, tlist) where T<:Function
-    tlist_midpoints = zeros(eltype(tlist), length(tlist) - 1)
-    tlist_midpoints[1] = tlist[1]
-    tlist_midpoints[end] = tlist[end]
-    for i in 2:length(tlist_midpoints) - 1
-        dt = tlist[i+1] - tlist[i]
-        tlist_midpoints[i] = tlist[i] + 0.5 * dt
-    end
-    return discretize(control, tlist_midpoints; via_midpoints=false)
+    return discretize(control, get_tlist_midpoints(tlist); via_midpoints=false)
 end
 
 function discretize_on_midpoints(control::Vector, tlist)

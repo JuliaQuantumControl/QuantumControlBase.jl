@@ -9,6 +9,7 @@ export objective_genfunc, propagate_objective, initobjpropwrk
 include("controls.jl")
 export discretize, discretize_on_midpoints, evalcontrols, evalcontrols!
 export get_control_parameters, getcontrols, getcontrolderiv, getcontrolderivs
+export get_tlist_midpoints
 
 include("gradgen.jl")
 export TimeDependentGradGenerator, GradVector, GradGenerator, resetgradvec!
