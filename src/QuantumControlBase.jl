@@ -20,14 +20,15 @@ export liouvillian
 include("infohook.jl")
 export chain_infohooks
 
+
+include("shapes.jl")               # submodule Shapes
+include("functionals.jl")          # submodule Functionals
+include("conditionalthreads.jl")   # submodule ConditionalThreads
+include("testutils.jl")            # submodule TestUtils
+include("saving.jl")               # submodule Saving
+
+
 include("optimize.jl")
-export optimize
-
-# Submodules:
-
-include("shapes.jl")
-include("functionals.jl")
-include("conditionalthreads.jl")
-include("testutils.jl")
+export optimize, @optimize_or_load
 
 end
