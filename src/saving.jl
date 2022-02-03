@@ -5,57 +5,52 @@ using Dates: TimeType
 import DrWatson
 import ..ControlProblem
 
+
 struct OptimizationConfig
-    problem ::  ControlProblem
-    method :: Symbol
-    kwargs :: Dict{Symbol, Any}
+    problem::ControlProblem
+    method::Symbol
+    kwargs::Dict{Symbol,Any}
 end
-
-
-function default_prefix(c)
-    name = get(c.problem.kwargs, :name, nothing)
-    if !isnothing(name)
-        return "$(c.method)_$(c.name)"
-    else
-        return String(c.method)
-    end
-end
-
-DrWatson.default_prefix(c::OptimizationConfig) = default_prefix(c)
 
 
 function allaccess(c)
-    no_anon_funcs((k, v)) = !(
-        (v isa Function) && contains(String(nameof(v)), "#")
-    )
-    return collect(
-        union(keys(filter(no_anon_funcs, c.kwargs)),
-              keys(filter(no_anon_funcs, c.problem.kwargs))
-        )
-    )
+    no_anon_funcs((k, v)) = !((v isa Function) && contains(String(nameof(v)), "#"))
+    all_keys = String["method"]
+    for dict in (c.kwargs, c.problem.kwargs)
+        for (k, v) ∈ dict
+            key = String(k)
+            if !((v isa Function) && contains(String(nameof(v)), "#"))
+                push!(all_keys, key)
+            end
+        end
+    end
+    return all_keys
 end
 
 DrWatson.allaccess(c::OptimizationConfig) = allaccess(c)
 
 
-function allignore(c)
-    return ("chi", )
+function access(c, key::AbstractString)
+    (key == "method") && (return String(c.method))
+    key_sym = Symbol(key)
+    if key_sym ∈ keys(c.kwargs)
+        val = c.kwargs[key_sym]
+    else
+        val = c.problem.kwargs[key_sym]
+    end
+    return val
 end
 
-DrWatson.allignore(c::OptimizationConfig) = allignore(c)
+DrWatson.access(c::OptimizationConfig, key::AbstractString) = access(c, key)
 
 
-function access(c, key)
-    (key ∈ keys(c.kwargs)) ? c.kwargs[key] : c.problem.kwargs[key]
-end
-
-DrWatson.access(c::OptimizationConfig, key) = access(c, key)
-
+const ALLOWED_TYPES = [Real, String, Symbol, TimeType, Function]
 
 function default_allowed(c)
-    return (Real, String, Symbol, TimeType, Function)
+    return ALLOWED_TYPES
 end
 
 DrWatson.default_allowed(c::OptimizationConfig) = default_allowed(c)
+
 
 end

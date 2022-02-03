@@ -29,6 +29,7 @@ include("saving.jl")               # submodule Saving
 
 
 include("optimize.jl")
-export optimize, @optimize_or_load
+export optimize, @optimize_or_load, optimization_savename, load_optimization
+export default_optimization_savename_kwargs
 
 end
