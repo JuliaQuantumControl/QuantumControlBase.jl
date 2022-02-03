@@ -28,12 +28,12 @@ fulfilling multiple objectives of this type.
 
 Note that the objective can only be instantiated via keyword arguments.
 """
-struct Objective{ST, GT} <: AbstractControlObjective
-    initial_state :: ST
-    generator :: GT
-    target_state :: ST
-    function Objective(;initial_state::ST, generator::GT, target_state::ST) where {ST, GT}
-        new{ST, GT}(initial_state, generator, target_state)
+struct Objective{ST,GT} <: AbstractControlObjective
+    initial_state::ST
+    generator::GT
+    target_state::ST
+    function Objective(; initial_state::ST, generator::GT, target_state::ST) where {ST,GT}
+        new{ST,GT}(initial_state, generator, target_state)
     end
 end
 
@@ -54,13 +54,18 @@ additional `weight` parameter (a float generally between 0 and 1) that weights
 the objective relative to other objectives that are part of the same control
 problem.
 """
-struct WeightedObjective{ST, GT} <: AbstractControlObjective
-    initial_state :: ST
-    generator :: GT
-    target_state :: ST
-    weight :: Float64
-    function WeightedObjective(;initial_state::ST, generator::GT, target_state::ST, weight::Float64) where {ST, GT}
-        new{ST, GT}(initial_state, generator, target_state, weight)
+struct WeightedObjective{ST,GT} <: AbstractControlObjective
+    initial_state::ST
+    generator::GT
+    target_state::ST
+    weight::Float64
+    function WeightedObjective(;
+        initial_state::ST,
+        generator::GT,
+        target_state::ST,
+        weight::Float64
+    ) where {ST,GT}
+        new{ST,GT}(initial_state, generator, target_state, weight)
     end
 end
 
@@ -96,15 +101,18 @@ functional.
 The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
-struct ControlProblem{OT<:AbstractControlObjective, OPT<:AbstractDict, KWT}
-    objectives :: Vector{OT}
-    pulse_options :: OPT # TODO: make this optional?
-    tlist :: Vector{Float64}
-    kwargs :: KWT
-    function ControlProblem(;objectives, pulse_options, tlist, kwargs...)
+struct ControlProblem{OT<:AbstractControlObjective,OPT<:AbstractDict,KWT}
+    objectives::Vector{OT}
+    pulse_options::OPT # TODO: make this optional?
+    tlist::Vector{Float64}
+    kwargs::KWT
+    function ControlProblem(; objectives, pulse_options, tlist, kwargs...)
         kwargs_dict = Dict(kwargs)  # make the kwargs mutable
-        new{typeof(objectives[1]), typeof(pulse_options), typeof(kwargs_dict)}(
-            objectives, pulse_options, tlist, kwargs_dict
+        new{typeof(objectives[1]),typeof(pulse_options),typeof(kwargs_dict)}(
+            objectives,
+            pulse_options,
+            tlist,
+            kwargs_dict
         )
     end
 end
@@ -148,10 +156,16 @@ the dynamical generator `obj.generator`, and adjoints of the
 """
 function Base.adjoint(obj::Objective)
     initial_state_adj = obj.initial_state
-    try initial_state_adj = Base.adjoint(obj.initial_state) catch end
+    try
+        initial_state_adj = Base.adjoint(obj.initial_state)
+    catch
+    end
     generator_adj = dynamical_generator_adjoint(obj.generator)
     target_adj = obj.target_state
-    try target_adj = Base.adjoint(obj.target_state) catch end
+    try
+        target_adj = Base.adjoint(obj.target_state)
+    catch
+    end
     return Objective(
         initial_state=initial_state_adj,
         generator=generator_adj,
@@ -161,10 +175,16 @@ end
 
 function Base.adjoint(obj::WeightedObjective)
     initial_state_adj = obj.initial_state
-    try initial_state_adj = Base.adjoint(obj.initial_state) catch end
+    try
+        initial_state_adj = Base.adjoint(obj.initial_state)
+    catch
+    end
     generator_adj = dynamical_generator_adjoint(obj.generator)
     target_adj = obj.target_state
-    try target_adj = Base.adjoint(obj.target_state) catch end
+    try
+        target_adj = Base.adjoint(obj.target_state)
+    catch
+    end
     return WeightedObjective(
         initial_state=initial_state_adj,
         generator=generator_adj,

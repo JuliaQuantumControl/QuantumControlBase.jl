@@ -4,11 +4,11 @@ using QuantumControlBase
 @testset "chain_infohooks" begin
 
     function hook1(wrk, a1, a2, args...)
-        return (1, )
+        return (1,)
     end
 
     function hook2(wrk, a1, a2, args...)
-        return (2, )
+        return (2,)
     end
 
     function hook3(wrk, a1, a2, args...)

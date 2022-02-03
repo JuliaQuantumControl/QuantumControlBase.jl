@@ -4,7 +4,7 @@ using SparseArrays
 function ham_to_superop(H::AbstractSparseMatrix; convention)
     # See https://arxiv.org/abs/1312.0111, Appendix B.2
     ⊗(A, B) = kron(A, B)
-    𝟙 = SparseMatrixCSC{ComplexF64, Int64}(sparse(I, size(H)[1], size(H)[2]))
+    𝟙 = SparseMatrixCSC{ComplexF64,Int64}(sparse(I, size(H)[1], size(H)[2]))
     H_T = sparse(transpose(H))
     L = sparse(𝟙 ⊗ H - H_T ⊗ 𝟙)
     if convention == :TDSE
@@ -28,8 +28,8 @@ function lindblad_to_superop(A::AbstractSparseMatrix; convention)
     A⁺ᵀ = sparse(transpose(A⁺))
     A⁺_A = sparse(A⁺ * A)
     A⁺_A_ᵀ = sparse(transpose(A⁺_A))
-    𝟙 = SparseMatrixCSC{ComplexF64, Int64}(sparse(I, size(A)[1], size(A)[2]))
-    D = sparse(A⁺ᵀ ⊗ A - (𝟙 ⊗ A⁺_A)/2 - (A⁺_A_ᵀ ⊗ 𝟙)/2)
+    𝟙 = SparseMatrixCSC{ComplexF64,Int64}(sparse(I, size(A)[1], size(A)[2]))
+    D = sparse(A⁺ᵀ ⊗ A - (𝟙 ⊗ A⁺_A) / 2 - (A⁺_A_ᵀ ⊗ 𝟙) / 2)
     if convention == :TDSE
         return 1im * D
     elseif convention == :LvN
@@ -45,7 +45,8 @@ end
 
 
 function dissipator(c_ops; convention)
-    N = size(c_ops[1])[1]; @assert N == size(c_ops[1])[2]
+    N = size(c_ops[1])[1]
+    @assert N == size(c_ops[1])[2]
     D = spzeros(ComplexF64, N^2, N^2)
     for A in c_ops
         D += lindblad_to_superop(A; convention=convention)
@@ -55,7 +56,7 @@ end
 
 
 nhilbert(H::AbstractMatrix) = size(H)[1]
-nhilbert(H::Tuple{HT, ET}) where {HT <: AbstractMatrix, ET} = size(H[1])[1]
+nhilbert(H::Tuple{HT,ET}) where {HT<:AbstractMatrix,ET} = size(H[1])[1]
 
 
 @doc raw"""Construct a Liouvillian super-operator.
@@ -136,7 +137,7 @@ function liouvillian(H::Tuple, c_ops=(); convention)
 end
 
 function liouvillian(H::AbstractMatrix, c_ops=(); convention)
-    return liouvillian((H, ), c_ops; convention=convention)
+    return liouvillian((H,), c_ops; convention=convention)
 end
 
 function liouvillian(H::Nothing, c_ops=(); convention)

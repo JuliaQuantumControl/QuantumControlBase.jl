@@ -9,8 +9,8 @@ import QuantumControlBase: optimize
 
 
     struct Result
-        iter_stop :: Int
-        flag :: Bool
+        iter_stop::Int
+        flag::Bool
     end
 
     struct DummyObjective <: QuantumControlBase.AbstractControlObjective
@@ -22,7 +22,8 @@ import QuantumControlBase: optimize
         return Result(problem.kwargs[:iter_stop], problem.kwargs[:flag])
     end
 
-    QuantumControlBase.optimize(problem, method::Val{:kwargstest}) = optimize_kwargstest(problem)
+    QuantumControlBase.optimize(problem, method::Val{:kwargstest}) =
+        optimize_kwargstest(problem)
 
     problem = ControlProblem(
         objectives=[DummyObjective(nothing, nothing)],

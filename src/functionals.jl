@@ -18,7 +18,7 @@ f_tau(ϕ, objectives; τ=nothing)
 function f_tau(ϕ, objectives; τ=nothing)
     N = length(objectives)
     if τ === nothing
-        τ = [dot(objectives[k].target_state, ϕ[k]) for k in 1:N]
+        τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
     end
     f::ComplexF64 = 0
     for k = 1:N
@@ -39,9 +39,9 @@ F_ss(ϕ, objectives; τ=nothing)
 function F_ss(ϕ, objectives; τ=nothing)
     N = length(objectives)
     if τ === nothing
-        τ = [dot(objectives[k].target_state, ϕ[k]) for k in 1:N]
+        τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
     end
-    F::ComplexF64  = f_tau(ϕ, objectives; τ=abs.(τ).^2)
+    F::ComplexF64 = f_tau(ϕ, objectives; τ=abs.(τ) .^ 2)
     @assert imag(F) < 1e-10
     return real(F)
 end
@@ -66,14 +66,14 @@ chi_ss!(χ, ϕ, objectives; τ=nothing)
 function chi_ss!(χ, ϕ, objectives; τ=nothing)
     N = length(objectives)
     if τ === nothing
-        τ = [dot(objectives[k].target_state, ϕ[k]) for k in 1:N]
+        τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
     end
     for k = 1:N
         obj = objectives[k]
         ϕₖ_tgt = obj.target_state
         copyto!(χ[k], ϕₖ_tgt)
         w = isa(obj, WeightedObjective) ? obj.weight : 1.0
-        lmul!((τ[k] * w)/N, χ[k])
+        lmul!((τ[k] * w) / N, χ[k])
     end
 end
 
@@ -107,11 +107,10 @@ function grad_J_T_sm!(G, τ, ∇τ)
     G′ = reshape(G, L, N_T)  # writing to G′ modifies G
     for l = 1:L
         for n = 1:N_T
-            G′[l, n] = real(sum([conj(τ[k′]) * ∇τ[k][l, n]
-                                 for k′=1:N for k=1:N]))
+            G′[l, n] = real(sum([conj(τ[k′]) * ∇τ[k][l, n] for k′ = 1:N for k = 1:N]))
         end
     end
-    lmul!(-2/N^2, G)
+    lmul!(-2 / N^2, G)
     return G
 end
 
@@ -126,7 +125,7 @@ function chi_sm!(χ, ϕ, objectives; τ=nothing)
 
     N = length(objectives)
     if τ === nothing
-        τ = [dot(objectives[k].target_state, ϕ[k]) for k in 1:N]
+        τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
     end
 
     w = ones(N)
@@ -176,14 +175,14 @@ chi_re!(χ, ϕ, objectives; τ=nothing)
 function chi_re!(χ, ϕ, objectives; τ=nothing)
     N = length(objectives)
     if τ === nothing
-        τ = [dot(objectives[k].target_state, ϕ[k]) for k in 1:N]
+        τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
     end
     for k = 1:N
         obj = objectives[k]
         ϕₖ_tgt = obj.target_state
         copyto!(χ[k], ϕₖ_tgt)
         w = isa(obj, WeightedObjective) ? obj.weight : 1.0
-        lmul!(w/(2N), χ[k])
+        lmul!(w / (2N), χ[k])
     end
 end
 

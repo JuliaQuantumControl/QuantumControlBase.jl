@@ -46,14 +46,12 @@ function discretize(control::Vector, tlist)
         vals = zeros(eltype(control), length(control) + 1)
         vals[1] = control[1]
         vals[end] = control[end]
-        for i in 2:length(vals)-1
+        for i = 2:length(vals)-1
             vals[i] = 0.5 * (control[i-1] + control[i])
         end
         return vals
     else
-        throw(ArgumentError(
-            "control array must be defined on intervals of tlist"
-        ))
+        throw(ArgumentError("control array must be defined on intervals of tlist"))
     end
 end
 
@@ -72,7 +70,7 @@ function get_tlist_midpoints(tlist)
     tlist_midpoints = zeros(eltype(tlist), length(tlist) - 1)
     tlist_midpoints[1] = tlist[1]
     tlist_midpoints[end] = tlist[end]
-    for i in 2:length(tlist_midpoints) - 1
+    for i = 2:length(tlist_midpoints)-1
         dt = tlist[i+1] - tlist[i]
         tlist_midpoints[i] = tlist[i] + 0.5 * dt
     end
@@ -133,7 +131,7 @@ unchanged, under the assumption that the input is already properly discretized.
 If `control` is a function, the function will be directly evaluated at the
 midpoints marked as `x` in the above diagram..
 """
-function discretize_on_midpoints(control::T, tlist) where T<:Function
+function discretize_on_midpoints(control::T, tlist) where {T<:Function}
     return discretize(control, get_tlist_midpoints(tlist); via_midpoints=false)
 end
 
@@ -144,14 +142,12 @@ function discretize_on_midpoints(control::Vector, tlist)
         vals = zeros(eltype(control), length(control) - 1)
         vals[1] = control[1]
         vals[end] = control[end]
-        for i in 2:length(vals)-1
+        for i = 2:length(vals)-1
             vals[i] = 2 * control[i] - vals[i-1]
         end
         return vals
     else
-        throw(ArgumentError(
-            "control array must be defined on the points of tlist"
-        ))
+        throw(ArgumentError("control array must be defined on the points of tlist"))
     end
 end
 
@@ -184,11 +180,11 @@ Each control must be a valid argument for `discretize`.
 function getcontrols(generator::Tuple)
     controls = []
     slots_dict = IdDict()  # utilized as Set of controls we've seen
-    FuncOrVector = Union{Function, Vector}
+    FuncOrVector = Union{Function,Vector}
     for (i, part) in enumerate(generator)
         if isa(part, Tuple)
             control = part[2]
-            control :: FuncOrVector  # assert correct type
+            control::FuncOrVector  # assert correct type
             if control in keys(slots_dict)
                 # We've seen this control before, so we just record the slot
                 # where it is referenced
@@ -205,7 +201,7 @@ end
 
 function getcontrols(objectives::Vector{T}) where {T<:AbstractControlObjective}
     controls = []
-    seen_control = IdDict{Any, Bool}()
+    seen_control = IdDict{Any,Bool}()
     for obj in objectives
         obj_controls = getcontrols(obj.generator)
         for control in obj_controls
@@ -233,7 +229,7 @@ replaces the time-dependent controls in `generator` with the values in
 The `vals_dict` is a dictionary (`IdDict`) mapping controls as returned by
 `getcontrols(generator)` to values.
 """
-function evalcontrols(generator::Tuple, vals_dict::D) where D<:AbstractDict
+function evalcontrols(generator::Tuple, vals_dict::D) where {D<:AbstractDict}
     if isa(generator[1], Tuple)
         control = generator[1][2]
         G = vals_dict[control] * generator[1][1]
@@ -260,7 +256,7 @@ evalcontrols!(G, generator, vals_dict)
 
 acts as [`evalcontrols`](@ref), but modifies `G` in-place.
 """
-function evalcontrols!(G, generator::Tuple, vals_dict::D) where D<:AbstractDict
+function evalcontrols!(G, generator::Tuple, vals_dict::D) where {D<:AbstractDict}
     if isa(generator[1], Tuple)
         control = generator[1][2]
         G .= vals_dict[control] * generator[1][1]
@@ -292,7 +288,7 @@ that evaluates the derivative for a particular value of the control, see
 [`getcontrolderiv`](@ref).
 """
 function getcontrolderivs(generator, controls)
-    controlderivs = Vector{Union{Function, Nothing}}(nothing, length(controls))
+    controlderivs = Vector{Union{Function,Nothing}}(nothing, length(controls))
     for (i, control) in enumerate(controls)
         controlderivs[i] = getcontrolderiv(generator, control)
     end
@@ -364,8 +360,7 @@ returned vector.
 """
 function get_control_parameters(objectives...; kwargs...)
     controls = getcontrols(objectives)
-    parameters = [get_control_parameters(control; kwargs...)
-                  for control in controls]
+    parameters = [get_control_parameters(control; kwargs...) for control in controls]
     return vcat(parameters...)
 end
 
@@ -380,8 +375,7 @@ time grid in `tlist`. By default, the discretization is on intervals
 (midpoints) of the time grid. With `on_midpoints=false`, the discretization
 will be on the actual points of the time grid.
 """
-function get_control_parameters(func::Function; tlist, on_midpoints=true,
-                                kwargs...)
+function get_control_parameters(func::Function; tlist, on_midpoints=true, kwargs...)
     if on_midpoints
         return discretize_on_midpoints(func, tlist)
     else

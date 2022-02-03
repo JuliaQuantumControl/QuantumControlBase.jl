@@ -13,14 +13,14 @@ using Zygote
     Ĥ₁ = random_hermitian_matrix(N, ρ)
     Ĥ₂ = random_hermitian_matrix(N, ρ)
     Zero = zeros(ComplexF64, N, N)
-    ϵ₁ = t->1.0
-    ϵ₂ = t->1.0
+    ϵ₁ = t -> 1.0
+    ϵ₂ = t -> 1.0
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     Ψ = random_state_vector(N)
     ψ_max = maximum(abs.(Ψ))
     Ψtgt = random_state_vector(N)
     𝕚 = 1im
-    dt  = 1.25
+    dt = 1.25
 
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
 
@@ -28,7 +28,7 @@ using Zygote
     G̃ = evalcontrols(G̃_of_t, vals_dict)
     Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
 
-    Û_Ψ = exp(-𝕚*Ĥ*dt) * Ψ
+    Û_Ψ = exp(-𝕚 * Ĥ * dt) * Ψ
 
     Ψ̃ = GradVector(Ψ, 2)
     # did the initialization work?
@@ -64,6 +64,7 @@ using Zygote
     # This checks whether the application of a GradGenerator to a GradVector an
     # all the linear-algebra methods are implemented correctly
 
+    #! format: off
     G̃_full = vcat(hcat(Ĥ,    Zero, Ĥ₁),
                   hcat(Zero, Ĥ,    Ĥ₂),
                   hcat(Zero, Zero, Ĥ))
@@ -71,6 +72,7 @@ using Zygote
     Ψ̃_full = vcat(Ψ̃.grad_states[1],
                   Ψ̃.grad_states[2],
                   Ψ̃.state)
+    #! format: on
     # proper initialization? grad_states should be zero
     @test norm(Ψ̃_full) == norm(Ψ̃.state) == norm(Ψ)
 
@@ -101,16 +103,17 @@ using Zygote
     # controls is correct (the literature generally only gives the expression
     # for a single control)
 
+    #! format: off
     G̃_full1 = vcat(hcat(Ĥ,    Ĥ₁),
                    hcat(Zero, Ĥ))
     G̃_full2 = vcat(hcat(Ĥ,    Ĥ₂),
                    hcat(Zero, Ĥ))
     Ψ̃_full1 = vcat(Ψ̃.grad_states[1],
                    Ψ̃.state)
+    #! format: on
     @test maximum(abs.(Ψ)) == ψ_max  # is Ψ still exactly the same state?
     @test norm(Ψ̃_full1) == norm(Ψ)  # initialization correct?
-    Ψ̃_full2 = vcat(Ψ̃.grad_states[2],
-                   Ψ̃.state)
+    Ψ̃_full2 = vcat(Ψ̃.grad_states[2], Ψ̃.state)
     @test norm(Ψ̃_full2) == norm(Ψ)  # initialization correct?
     Ψ̃_out_full1 = exp(-𝕚 * G̃_full1 * dt) * Ψ̃_full1
     Ψ̃_out_full2 = exp(-𝕚 * G̃_full2 * dt) * Ψ̃_full2
@@ -131,15 +134,17 @@ using Zygote
     # (since Zygote can only calculate the gradient for a scalar function, in
     # this case the square-modulus of the overlap with a target)
 
-    F_sm(ϵ₁, ϵ₂) = abs(dot(Ψtgt, exp(-1im * (Ĥ₀ + ϵ₁*Ĥ₁ + ϵ₂*Ĥ₂) * dt) * Ψ))^2
+    F_sm(ϵ₁, ϵ₂) = abs(dot(Ψtgt, exp(-1im * (Ĥ₀ + ϵ₁ * Ĥ₁ + ϵ₂ * Ĥ₂) * dt) * Ψ))^2
     grad_zygote = collect(gradient(F_sm, 1.0, 1.0))
 
     @test norm(Ψ̃_out.state - Û_Ψ) < 1e-12  # still correct?
     τ = dot(Ψtgt, Û_Ψ)
     # `grad` is gradient of F_sm based on Newton-prop of GradGenerator
     # For ∂F/∂τ see Eq. (3.47) of Phd Thesis of Michael Goerz
-    grad = [2*real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[1])),
-            2*real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[2]))]
+    grad = [
+        2 * real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[1])),
+        2 * real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[2]))
+    ]
     @test abs(grad_zygote[1] - grad[1]) < 1e-10
     @test abs(grad_zygote[2] - grad[2]) < 1e-10
 
@@ -167,8 +172,7 @@ using Zygote
         return Û * sum(terms)
     end
 
-    grad_taylor = [U_grad(Ĥ, Ĥ₁, dt) * Ψ,
-                   U_grad(Ĥ, Ĥ₂, dt) * Ψ]
+    grad_taylor = [U_grad(Ĥ, Ĥ₁, dt) * Ψ, U_grad(Ĥ, Ĥ₂, dt) * Ψ]
 
     @test norm(Ψ̃_out.grad_states[1] - grad_taylor[1]) < 1e-10
     @test norm(Ψ̃_out.grad_states[2] - grad_taylor[2]) < 1e-10

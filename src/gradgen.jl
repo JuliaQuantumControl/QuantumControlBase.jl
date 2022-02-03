@@ -29,15 +29,15 @@ Note that the ``∂G/∂ϵₗ(t)`` (``Ĥₗ`` in the above example) are functio
 account for the possibility of non-linear control terms, see
 [`getcontrolderiv`](@ref).
 """
-struct TimeDependentGradGenerator{GT, CT}
-    G :: GT
-    control_derivs :: Vector{Function}
-    controls :: Vector{CT}
+struct TimeDependentGradGenerator{GT,CT}
+    G::GT
+    control_derivs::Vector{Function}
+    controls::Vector{CT}
 
-    function TimeDependentGradGenerator(G::GT) where GT
+    function TimeDependentGradGenerator(G::GT) where {GT}
         controls = collect(getcontrols(G))
         control_derivs = getcontrolderivs(G, controls)
-        new{GT, eltype(controls)}(G, control_derivs, controls)
+        new{GT,eltype(controls)}(G, control_derivs, controls)
     end
 
 end
@@ -56,20 +56,24 @@ is the result of plugging in specific values for all controls in a
 The resulting object can be multiplied directly with a [`GradVector`](@ref),
 e.g., in the process of evaluating a piecewise-constant time propagation.
 """
-struct GradGenerator{GT, CGT}
-    G :: GT
-    control_derivs :: Vector{CGT}
+struct GradGenerator{GT,CGT}
+    G::GT
+    control_derivs::Vector{CGT}
 
     function GradGenerator(G_of_t::TimeDependentGradGenerator)
-        dummy_vals = IdDict(control => 1.0  for control in G_of_t.controls)
+        dummy_vals = IdDict(control => 1.0 for control in G_of_t.controls)
         G = evalcontrols(G_of_t.G, dummy_vals)
         control_derivs = [μ(1.0) for μ in G_of_t.control_derivs]
-        new{typeof(G), eltype(control_derivs)}(G, control_derivs)
+        new{typeof(G),eltype(control_derivs)}(G, control_derivs)
     end
 end
 
 
-function evalcontrols!(G::GradGenerator, G_of_t::TimeDependentGradGenerator, vals_dict::AbstractDict)
+function evalcontrols!(
+    G::GradGenerator,
+    G_of_t::TimeDependentGradGenerator,
+    vals_dict::AbstractDict
+)
     evalcontrols!(G.G, G_of_t.G, vals_dict)
     for (i, control) in enumerate(G_of_t.controls)
         G.control_derivs[i] = G_of_t.control_derivs[i](vals_dict[control])
@@ -121,13 +125,13 @@ e^{-i Ĥ dt} |Ψ⟩
 ```
 """
 struct GradVector{T}
-    state :: T
-    grad_states :: Vector{T}
+    state::T
+    grad_states::Vector{T}
 end
 
-function GradVector(Ψ::T, num_controls::Int64) where T
-    grad_states = [similar(Ψ) for _ in 1:num_controls]
-    for i = 1 : num_controls
+function GradVector(Ψ::T, num_controls::Int64) where {T}
+    grad_states = [similar(Ψ) for _ = 1:num_controls]
+    for i = 1:num_controls
         fill!(grad_states[i], 0.0)
     end
     GradVector{T}(copy(Ψ), grad_states)
@@ -148,13 +152,13 @@ resetgradvec!(Ψ̃::GradVector, Ψ)
 
 additionally sets `Ψ̃.state` to `Ψ`.
 """
-function resetgradvec!(Ψ̃::GradVector{T}) where T
-    for i = 1 : length(Ψ̃.grad_states)
+function resetgradvec!(Ψ̃::GradVector{T}) where {T}
+    for i = 1:length(Ψ̃.grad_states)
         fill!(Ψ̃.grad_states[i], 0.0)
     end
 end
 
-function resetgradvec!(Ψ̃::GradVector{T}, Ψ::T) where T
+function resetgradvec!(Ψ̃::GradVector{T}, Ψ::T) where {T}
     copyto!(Ψ̃.state, Ψ)
     resetgradvec!(Ψ̃)
 end
@@ -249,12 +253,13 @@ end
 
 
 struct DenseGradExpPropWrk{T}
-    Ψ_full :: Vector{ComplexF64}
-    Φ_full :: Vector{ComplexF64}
-    G_full :: Matrix{T}
+    Ψ_full::Vector{ComplexF64}
+    Φ_full::Vector{ComplexF64}
+    G_full::Matrix{T}
     function DenseGradExpPropWrk(
-            Ψ̃::GradVector{Vector{ComplexF64}},
-            G̃::GradGenerator{Matrix{T}, Matrix{T}}) where T
+        Ψ̃::GradVector{Vector{ComplexF64}},
+        G̃::GradGenerator{Matrix{T},Matrix{T}}
+    ) where {T}
         Ψ_full = convert_gradvec_to_dense(Ψ̃)
         Φ_full = similar(Ψ_full)
         G_full = convert_gradgen_to_dense(G̃)
@@ -264,11 +269,12 @@ end
 
 
 function QuantumPropagators.initpropwrk(
-        state::GradVector{Vector{ComplexF64}},
-        tlist,
-        method::Val{:expprop},
-        generator::Vararg{GradGenerator{Matrix{T}, Matrix{T}}};
-        kwargs...) where T
+    state::GradVector{Vector{ComplexF64}},
+    tlist,
+    method::Val{:expprop},
+    generator::Vararg{GradGenerator{Matrix{T},Matrix{T}}};
+    kwargs...
+) where {T}
     return DenseGradExpPropWrk(state, generator[1])
 end
 
@@ -276,7 +282,7 @@ end
 @inline function convert_gradgen_to_dense(G)
     N = size(G.G)[1]
     L = length(G.control_derivs)
-    G_full = zeros(eltype(G.G), N*(L+1), N*(L+1))
+    G_full = zeros(eltype(G.G), N * (L + 1), N * (L + 1))
     convert_gradgen_to_dense!(G_full, G)
 end
 
@@ -285,11 +291,11 @@ end
     N = size(G.G)[1]
     L = length(G.control_derivs)
     @inbounds for i = 1:L+1
-        G_full[(i-1)*N + 1 : i*N, (i-1)*N + 1 : i*N] .= G.G
+        G_full[(i-1)*N+1:i*N, (i-1)*N+1:i*N] .= G.G
     end
     # Set the control-derivatives in the last (block-)column
     @inbounds for i = 1:L
-        G_full[(i-1)*N + 1 : i*N, L*N + 1 : (L+1)*N]  .= G.control_derivs[i]
+        G_full[(i-1)*N+1:i*N, L*N+1:(L+1)*N] .= G.control_derivs[i]
     end
     return G_full
 end
@@ -298,7 +304,7 @@ end
 @inline function convert_gradvec_to_dense(Ψ)
     N = length(Ψ.state)
     L = length(Ψ.grad_states)
-    Ψ_full = zeros(ComplexF64, N*(L+1))
+    Ψ_full = zeros(ComplexF64, N * (L + 1))
     convert_gradvec_to_dense!(Ψ_full, Ψ)
 end
 
@@ -307,9 +313,9 @@ end
     N = length(Ψ.state)
     L = length(Ψ.grad_states)
     @inbounds for i = 1:L
-        Ψ_full[(i-1)*N + 1 : i*N] .= Ψ.grad_states[i]
+        Ψ_full[(i-1)*N+1:i*N] .= Ψ.grad_states[i]
     end
-    @inbounds Ψ_full[L*N + 1: (L+1)*N] .= Ψ.state
+    @inbounds Ψ_full[L*N+1:(L+1)*N] .= Ψ.state
     return Ψ_full
 end
 
@@ -318,23 +324,24 @@ end
     N = length(Ψ.state)
     L = length(Ψ.grad_states)
     @inbounds for i = 1:L
-        Ψ.grad_states[i] .= Ψ_full[(i-1)*N + 1 : i*N]
+        Ψ.grad_states[i] .= Ψ_full[(i-1)*N+1:i*N]
     end
-    @inbounds Ψ.state .= Ψ_full[L*N + 1: (L+1)*N]
+    @inbounds Ψ.state .= Ψ_full[L*N+1:(L+1)*N]
     return Ψ
 end
 
 
 function QuantumPropagators.propstep!(
-        Ψ̃::GradVector{Vector{ComplexF64}},
-        G̃::GradGenerator{Matrix{T}, Matrix{T}},
-        dt::Float64,
-        wrk::DenseGradExpPropWrk;
-        kwargs...) where T
+    Ψ̃::GradVector{Vector{ComplexF64}},
+    G̃::GradGenerator{Matrix{T},Matrix{T}},
+    dt::Float64,
+    wrk::DenseGradExpPropWrk;
+    kwargs...
+) where {T}
     func = get(kwargs, :func, H_dt -> exp(-1im * H_dt))
     convert_gradgen_to_dense!(wrk.G_full, G̃)
     convert_gradvec_to_dense!(wrk.Ψ_full, Ψ̃)
-    U = func(wrk.G_full*dt)
+    U = func(wrk.G_full * dt)
     LinearAlgebra.mul!(wrk.Φ_full, U, wrk.Ψ_full)
     convert_dense_to_gradvec!(Ψ̃, wrk.Φ_full)
     return Ψ̃
