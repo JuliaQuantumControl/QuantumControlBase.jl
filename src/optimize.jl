@@ -60,7 +60,7 @@ function optimize_or_load(
     verbose=true,
     wsave_kwargs=Dict(),
     savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
-    kwargs...,
+    kwargs...
 )
 
     # _filter is only for attaching metadata to the result
@@ -89,7 +89,7 @@ function optimize_or_load(
         force=force,
         verbose=verbose,
         wsave_kwargs=wsave_kwargs,
-        savename_kwargs...,
+        savename_kwargs...
     ) do _
         result = optimize(problem; method=method, kwargs...)
         data = Dict("result" => result)
@@ -207,7 +207,7 @@ macro optimize_or_load(path, problem, args...)
         optimize_or_load(
             $(esc(path)),
             $(esc(problem));
-            $(esc.(DrWatson.convert_to_kw.(args))...),
+            $(esc.(DrWatson.convert_to_kw.(args))...)
         ) do data  # _filter
             # Extract the `gitpath` kw arg if it's there
             kws = ((; kwargs...) -> Dict(kwargs...))(
@@ -257,7 +257,7 @@ function optimization_savename(
     suffix="jld2",
     prefix="",
     savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
-    kwargs...,
+    kwargs...
 )
     for k ∈ keys(savename_kwargs)
         if k ∉ _SAVENAME_AVAILABLE_KEYS

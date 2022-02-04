@@ -10,8 +10,10 @@ using UnicodePlots
 
     SHOWPLOT = false
 
+    #! format: off
     σ̂_z = ComplexF64[1 0; 0 -1];
     σ̂_x = ComplexF64[0 1; 1  0];
+    #! format: on
 
     ϵ(t) = 0.2 * flattop(t, T=5, t_rise=0.3, func=:blackman)
 
@@ -22,27 +24,27 @@ using UnicodePlots
     end
 
     function ket(label)
+        #! format: off
         result = Dict(
             "0" => Vector{ComplexF64}([1, 0]),
             "1" => Vector{ComplexF64}([0, 1]),
         )
+        #! format: on
         return result[string(label)]
     end
 
-    H = hamiltonian();
+    H = hamiltonian()
 
     obj = Objective(initial_state=ket(0), generator=H, target_state=ket(1))
 
-    tlist = collect(range(0, 5, length=500));
+    tlist = collect(range(0, 5, length=500))
 
     states = propagate_objective(obj, tlist, storage=true)
 
-    pops = abs.(states).^2
-    pop0 = pops[1,:]
+    pops = abs.(states) .^ 2
+    pop0 = pops[1, :]
 
-    SHOWPLOT && println(
-        lineplot(tlist, pop0, ylim=[0, 1], title="0 population")
-    )
+    SHOWPLOT && println(lineplot(tlist, pop0, ylim=[0, 1], title="0 population"))
 
     @test length(pop0) == length(tlist)
     @test pop0[1] ≈ 1.0

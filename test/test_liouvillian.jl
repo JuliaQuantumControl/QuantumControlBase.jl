@@ -26,7 +26,7 @@ using QuantumControlBase.TestUtils
 
     Ψ₀ = (ket(0) + ket(1)) / √2
     ρ⃗₀ = reshape(Ψ₀ * Ψ₀', :)
-    ℒ = Array(liouvillian(nothing, [Âᵧ₁,Âᵧ₂]; convention=:TDSE)[1])
+    ℒ = Array(liouvillian(nothing, [Âᵧ₁, Âᵧ₂]; convention=:TDSE)[1])
 
     T = 1.0
     tlist = [0.0, T]
@@ -34,10 +34,12 @@ using QuantumControlBase.TestUtils
     ρ⃗_out = propagate(ρ⃗₀, (tlist, i; kwargs...) -> ℒ, tlist; method=:expprop)
     ρ_out = reshape(ρ⃗_out, 2, 2)
 
+    #! format: off
     ρ_expected = 0.5 * ComplexF64[
             (2-exp(-γ₁*T))    (exp(-(γ₁/2 + γ₂)*T));
         (exp(-(γ₁/2 + γ₂)*T))       (exp(-γ₁*T))
     ]
+    #! format: on
 
 
     @test abs(1 - tr(ρ_out)) < 1e-15 # total population
@@ -64,7 +66,7 @@ end
     Ĥ₀ = random_hermitian_matrix(N, 1)
     Ĥ₁ = random_hermitian_matrix(N, 0.1)
 
-    H = (Ĥ₀, (Ĥ₁, t->1.0))
+    H = (Ĥ₀, (Ĥ₁, t -> 1.0))
     Ĥ = H[1] + H[2][1] * H[2][2](0)
 
     Ψ₀ = random_state_vector(N)
@@ -92,11 +94,8 @@ end
     ℒ = L[1] + L[2][1] * L[2][2](0)
 
     ρ̇_LvN = (
-        𝕚 * (Ĥ * ρ₀ - ρ₀ * Ĥ)
-        + sum([
-            (A * ρ₀ * A' - (A' * A * ρ₀)/2 - (ρ₀ * A' * A)/2)
-            for A ∈ c_ops
-        ])
+        𝕚 * (Ĥ * ρ₀ - ρ₀ * Ĥ) +
+        sum([(A * ρ₀ * A' - (A' * A * ρ₀) / 2 - (ρ₀ * A' * A) / 2) for A ∈ c_ops])
     )
 
     ρ̇ = reshape(ℒ * ρ⃗₀, N, N)

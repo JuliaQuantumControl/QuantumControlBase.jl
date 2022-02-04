@@ -25,15 +25,15 @@ function flattop(t; T, t_rise, t₀=0, t_fall=t_rise, func=:blackman)
     elseif func == :sinsq
         return flattop_sinsq(t, t₀, T, t_rise, t_fall)
     else
-        throw(ArgumentError(
-            "Unknown func=$func. Accepted values are :blackman and :sinsq."
-        ))
+        throw(
+            ArgumentError("Unknown func=$func. Accepted values are :blackman and :sinsq.")
+        )
     end
 end
 
 
 function flattop_sinsq(t, t₀, T, t_rise, t_fall=t_rise)
-    f :: Float64 = 0.0
+    f::Float64 = 0.0
     if t₀ ≤ t ≤ T
         f = 1.0
         if t ≤ t₀ + t_rise
@@ -47,7 +47,7 @@ end
 
 
 function flattop_blackman(t, t₀, T, t_rise, t_fall=t_rise)
-    f :: Float64 = 0.0
+    f::Float64 = 0.0
     if t₀ ≤ t ≤ T
         f = 1.0
         if t ≤ t₀ + t_rise
@@ -100,9 +100,9 @@ Gaussians.
 function blackman(t, t₀, T; a=0.16)
     ΔT = T - t₀
     return (
-        0.5
-        * box(t, t₀, T)
-        * (1.0 - a - cos(2π * (t - t₀) / ΔT) + a * cos(4π * (t - t₀) / ΔT))
+        0.5 *
+        box(t, t₀, T) *
+        (1.0 - a - cos(2π * (t - t₀) / ΔT) + a * cos(4π * (t - t₀) / ΔT))
     )
 end
 

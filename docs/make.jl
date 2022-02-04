@@ -2,7 +2,12 @@ using QuantumControlBase
 using QuantumPropagators
 using Documenter
 
-DocMeta.setdocmeta!(QuantumControlBase, :DocTestSetup, :(using QuantumControlBase); recursive=true)
+DocMeta.setdocmeta!(
+    QuantumControlBase,
+    :DocTestSetup,
+    :(using QuantumControlBase);
+    recursive=true
+)
 
 makedocs(;
     modules=[QuantumControlBase],
@@ -11,15 +16,13 @@ makedocs(;
     format=Documenter.HTML(;
         prettyurls=true,
         canonical="https://juliaquantumcontrol.github.io/QuantumControlBase.jl",
-        assets=String[],
+        assets=String[]
     ),
     pages=[
         "Home" => "index.md",
         hide("QuantumPropagators" => "quantumpropagators.md"),
         "History" => "history.md",
-    ],
+    ]
 )
 
-deploydocs(;
-    repo="github.com/JuliaQuantumControl/QuantumControlBase.jl",
-)
+deploydocs(; repo="github.com/JuliaQuantumControl/QuantumControlBase.jl")
