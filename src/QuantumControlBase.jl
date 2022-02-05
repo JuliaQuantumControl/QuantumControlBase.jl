@@ -4,15 +4,14 @@ include("controlproblem.jl")
 export ControlProblem, Objective, WeightedObjective
 
 include("propagate.jl")
-export objective_genfunc, propagate_objective, initobjpropwrk
+export propagate_objective
 
 include("controls.jl")
-export discretize, discretize_on_midpoints, evalcontrols, evalcontrols!
-export get_control_parameters, getcontrols, getcontrolderiv, getcontrolderivs
+export discretize, discretize_on_midpoints
+export get_control_parameters, getcontrols
 export get_tlist_midpoints
 
 include("gradgen.jl")
-export TimeDependentGradGenerator, GradVector, GradGenerator, resetgradvec!
 
 include("liouvillian.jl")
 export liouvillian

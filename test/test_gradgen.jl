@@ -1,7 +1,8 @@
 using Test
 using LinearAlgebra
 using QuantumPropagators
-using QuantumControlBase
+using QuantumControlBase:
+    TimeDependentGradGenerator, GradGenerator, GradVector, resetgradvec!, evalcontrols
 using QuantumControlBase.TestUtils
 using Zygote
 
