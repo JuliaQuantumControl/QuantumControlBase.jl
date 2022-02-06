@@ -1,6 +1,7 @@
 using Test
 using LinearAlgebra
-using QuantumPropagators
+using QuantumPropagators: initpropwrk, propstep!
+using QuantumPropagators.Newton
 using QuantumControlBase:
     TimeDependentGradGenerator, GradGenerator, GradVector, resetgradvec!, evalcontrols
 using QuantumControlBase.TestUtils
