@@ -32,10 +32,6 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - run: |
-          # Install matplotlib into system Python
-          set -x
-          /usr/bin/python3 -m pip install matplotlib
-      - run: |
           # Instantiate Pkg
           julia --project=@. -e '
             using Pkg
