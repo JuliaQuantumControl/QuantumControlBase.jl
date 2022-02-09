@@ -67,12 +67,12 @@ function optimize_or_load(
 
     if isnothing(filename)
         filename = optimization_savename(
-            problem,
+            problem;
             method=method,
             suffix=suffix,
             prefix=prefix,
             savename_kwargs=savename_kwargs,
-            kwargs...,
+            kwargs...
         )
     end
 
@@ -251,8 +251,8 @@ formatted can be customized via `savename_kwargs`.
 See [`default_optimization_savename_kwargs`](@ref) for the supported options.
 """
 function optimization_savename(
-    path,
-    problem;
+    path::AbstractString,
+    problem::ControlProblem;
     method,
     suffix="jld2",
     prefix="",
