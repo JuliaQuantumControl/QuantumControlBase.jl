@@ -2,11 +2,12 @@
 using Pkg
 Pkg.develop(PackageSpec(path=pwd()))
 using Revise
+using JuliaFormatter
 println("""
 *******************************************************************************
 DEVELOPMENT REPL
 
-Revise is active
+Revise is active. JuliaFormatter is active.
 
 Run
 

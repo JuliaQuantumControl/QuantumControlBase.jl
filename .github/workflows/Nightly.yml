@@ -1,7 +1,7 @@
 name: Nightly
 on:
   push:
-    branches:    
+    branches:
       - 'master'
       - 'release-*'
 jobs:
@@ -35,27 +35,13 @@ jobs:
             ${{ runner.os }}-
       - run: |
           # Instantiate Pkg
-          julia --project=@. -e '
-            using Pkg
-            println("Dev-install QuantumPropagators")
-            Pkg.develop(url="https://github.com/JuliaQuantumControl/QuantumPropagators.jl.git#master")
-            println("Dev-install Krotov")
-            Pkg.develop(url="https://github.com/JuliaQuantumControl/Krotov.jl.git#master")
-            println("Dev-install GRAPE")
-            Pkg.develop(url="https://github.com/JuliaQuantumControl/GRAPE.jl.git#master")
-            println("Dev-install QuantumControl")
-            Pkg.develop(url="https://github.com/JuliaQuantumControl/QuantumControl.jl.git#master")
-            println("Pkg.instantiate()")
-            Pkg.instantiate()'
+          wget https://raw.githubusercontent.com/JuliaQuantumControl/JuliaQuantumControl/master/scripts/installorg.jl
+          julia --project=test installorg.jl
       - run: |
           # Run tests
-          julia --project=@. -e '
-            using Pkg
-            Pkg.activate(".")
-            Pkg.test()'
+          julia --project=test --color=auto --startup-file=yes --code-coverage="user" --depwarn="yes" --check-bounds="yes" -e 'include("test/runtests.jl")'
       - run: |
           # Run upstream "Krotov" tests
-          julia --project=@. --threads auto -e '
+          julia --project=test -e '
             using Pkg
-            Pkg.activate(".")
-            Pkg.test("Krotov")'
+            Pkg.test("Krotov", coverage=true)'

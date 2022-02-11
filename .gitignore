@@ -5,3 +5,5 @@
 /test/Manifest.toml
 /docs/Manifest.toml
 /docs/build/
+/gh-pages/
+/.JuliaFormatter.toml
