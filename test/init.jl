@@ -3,6 +3,7 @@ using Revise
 using JuliaFormatter
 using QuantumControlBase.TestUtils: test
 using LiveServer: LiveServer, serve, servedocs
+include(joinpath(@__DIR__, "clean.jl"))
 
 
 println("""
@@ -21,5 +22,7 @@ Revise, JuliaFormatter, LiveServer are active.
 * `servedocs([port=8000, verbose=false])` –
   Build and serve the documentation. Automatically recompile and redisplay on
   changes
+* `clean()` – Clean up build/doc/testing artifacts
+* `distclean()` – Restore to a clean checkout state
 *******************************************************************************
 """)
