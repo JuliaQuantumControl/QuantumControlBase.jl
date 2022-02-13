@@ -23,10 +23,14 @@ test(
     project="test",
     code_coverage="user",
     show_coverage=(code_coverage == "user"),
-    color="auto",
-    startup_file="yes",
-    depwarn="yes",
+    color=<inherit>,
+    compiled_modules=<inherit>,
+    startup_file=<inherit>,
+    depwarn=<inherit>,
+    inline=<inherit>,
     check_bounds="yes",
+    track_allocation=<inherit>,
+    threads=<inherit>,
     genhtml=false,
     covdir="coverage"
 )
@@ -63,10 +67,14 @@ function test(
     project="test",
     code_coverage="user",
     show_coverage=(code_coverage == "user"),
-    color="auto",
-    startup_file="yes",
-    depwarn="yes",
+    color=(Base.have_color === nothing ? "auto" : Base.have_color ? "yes" : "no"),
+    compiled_modules=(Bool(Base.JLOptions().use_compiled_modules) ? "yes" : "no"),
+    startup_file=(Base.JLOptions().startupfile == 1 ? "yes" : "no"),
+    depwarn=(Base.JLOptions().depwarn == 2 ? "error" : "yes"),
+    inline=(Bool(Base.JLOptions().can_inline) ? "yes" : "no"),
+    track_allocation=(("none", "user", "all")[Base.JLOptions().malloc_log+1]),
     check_bounds="yes",
+    threads=Threads.nthreads(),
     genhtml::Union{Bool,AbstractString}=false,
     covdir="coverage"
 )
@@ -75,11 +83,15 @@ function test(
         julia,
         "--project=$project",
         "--color=$color",
+        "--compiled-modules=$compiled_modules",
         "--startup-file=$startup_file",
         "--code-coverage=$code_coverage",
+        "--track-allocation=$track_allocation",
         "--depwarn=$depwarn",
         "--check-bounds=$check_bounds",
-        "-e",
+        "--threads=$threads",
+        "--inline=$inline",
+        "--eval",
         "include(\"$file\")"
     ]
     @info "Running '$(join(cmd, " "))' in subprocess"
