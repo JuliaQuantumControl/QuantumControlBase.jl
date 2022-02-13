@@ -26,8 +26,9 @@ test:  test/Manifest.toml  ## Run the test suite
 	@echo "Done. Consider using 'make devrepl'"
 
 
-test/Manifest.toml: test/Project.toml  ../scripts/installorg.jl
+test/Manifest.toml: test/Project.toml ../scripts/installorg.jl
 	$(JULIA) --project=test ../scripts/installorg.jl
+	@touch $@
 
 
 devrepl:  ## Start an interactive REPL for testing and building documentation
@@ -44,9 +45,9 @@ servedocs: test/Manifest.toml  ## Build (auto-rebuild) and serve documentation a
 clean: ## Clean up build/doc/testing artifacts
 	$(JULIA) -e 'include("test/clean.jl"); clean()'
 
-codestyle: test/Manifest.toml ../.JuliaFormatter.toml ## Apply the codestyle to the entire project
+codestyle: test/Manifest.toml ../.JuliaFormatter.toml  ## Apply the codestyle to the entire project
 	$(JULIA) --project=test -e 'using JuliaFormatter; format(".", verbose=true)'
 	@echo "Done. Consider using 'make devrepl'"
 
-distclean:  ## Restore to a clean checkout state
+distclean: clean ## Restore to a clean checkout state
 	$(JULIA) -e 'include("test/clean.jl"); clean(distclean=true)'

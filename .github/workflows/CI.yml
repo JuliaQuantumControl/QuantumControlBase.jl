@@ -75,7 +75,7 @@ jobs:
             doctest(QuantumControlBase)'
       - run: |
           # Make documentation
-          julia --threads auto --project=test docs/make.jl
+          julia --project=test docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
