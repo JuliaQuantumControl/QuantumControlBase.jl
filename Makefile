@@ -42,7 +42,8 @@ servedocs: docs/Manifest.toml  ## Build (auto-rebuild) and serve documentation a
 	$(JULIA) --project=test -e 'include("devrepl.jl"); servedocs(port=$(PORT), verbose=true)'
 
 clean: ## Clean up build/doc/testing artifacts
-	rm -f src/*.cov test/*.cov
+	rm -f src/*.cov test/*.cov lcov.info
+	rm -rf coverage
 	rm -rf docs/build
 
 codestyle: test/Manifest.toml ../.JuliaFormatter.toml ## Apply the codestyle to the entire project

@@ -1,7 +1,9 @@
 # init file for "make devrepl"
 using Revise
 using JuliaFormatter
-using LiveServer: serve, servedocs
+using QuantumControlBase.TestUtils: test
+using LiveServer: LiveServer, serve, servedocs
+
 
 println("""
 *******************************************************************************
@@ -10,6 +12,10 @@ DEVELOPMENT REPL
 Revise, JuliaFormatter, LiveServer are active.
 
 * `include("test/runtests.jl")` – Run the entire test suite
+* `test()` – Run the entire test suite in a subprocess with coverage
+* `test(genhtml=true)` – Generate an HTML coverage report
+* `Pkg.test("Krotov", coverage=true)` –
+  Run upstream Krotov tests for additional coverage
 * `include("docs/make.jl")` – Generate the documentation
 * `format(".")` – Apply code formatting to all files
 * `servedocs([port=8000, verbose=false])` –
