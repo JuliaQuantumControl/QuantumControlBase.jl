@@ -52,9 +52,9 @@ possible when running tests in a subprocess).
 
 If `show_coverage` is passed as `true` (default), a coverage summary is shown.
 Further, if `genhtml` is `true`, a full HTML coverage report will be generated
-in `covdir`. This requires the `genhtml` executable (part of the
-[lcov](http://ltp.sourceforge.net/coverage/lcov.php) package). Instead of
-`true`, it is also possible to pass the path to the `genhtml` exectuable.
+in `covdir` (relative to `root`). This requires the `genhtml` executable (part
+of the [lcov](http://ltp.sourceforge.net/coverage/lcov.php) package). Instead
+of `true`, it is also possible to pass the path to the `genhtml` exectuable.
 
 All other keyword arguments correspond to the respective command line flag for
 the `julia` executable that is run as the subprocess.
@@ -109,10 +109,8 @@ function test(
         (genhtml === true) && (genhtml = "genhtml")
         (genhtml === false) && (genhtml = "")
         if !isempty(genhtml)
-            LocalCoverage.CoverageTools.LCOV.writefile(
-                joinpath(covdir, tracefile),
-                coverage
-            )
+            covdir = joinpath(root, covdir)
+            LocalCoverage.CoverageTools.LCOV.writefile(tracefile, coverage)
             branch = try
                 strip(read(`git rev-parse --abbrev-ref HEAD`, String))
             catch e
@@ -126,7 +124,9 @@ function test(
                     "Failed to run $(genhtml). Check that lcov is installed.\nError message: $(sprint(Base.showerror, e))"
                 )
             end
-            @info("Generated coverage HTML. Serve with 'LiveServer.serve(dir=\"$covdir\")'")
+            @info(
+                "Generated coverage HTML. Serve with 'LiveServer.serve(dir=\"$(relpath(covdir, pwd()))\")'"
+            )
         end
     end
 end
