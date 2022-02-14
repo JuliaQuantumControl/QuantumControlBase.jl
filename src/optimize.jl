@@ -76,6 +76,10 @@ function optimize_or_load(
         )
     end
 
+    if isfile(joinpath(path, filename))
+        @info "Loading result from $(joinpath(path, filename))"
+    end
+
     data, file = DrWatson.produce_or_load(
         path,
         Dict();
