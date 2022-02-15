@@ -30,5 +30,3 @@ Revise, JuliaFormatter, LiveServer are active.
 
 """Show help"""
 help() = println(REPL_MESSAGE)
-
-help()
