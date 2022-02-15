@@ -45,3 +45,8 @@ jobs:
           julia --project=test -e '
             using Pkg
             Pkg.test("Krotov", coverage=true)'
+      - run: |
+          # Run upstream "GRAPE" tests
+          julia --project=test -e '
+            using Pkg
+            Pkg.test("GRAPE", coverage=true)'
