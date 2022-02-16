@@ -147,8 +147,8 @@ using Zygote
         2 * real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[1])),
         2 * real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[2]))
     ]
-    @test abs(grad_zygote[1] - grad[1]) < 1e-10
-    @test abs(grad_zygote[2] - grad[2]) < 1e-10
+    @test abs(grad_zygote[1] - grad[1]) < 1e-9
+    @test abs(grad_zygote[2] - grad[2]) < 1e-9
 
     ###########################################################################
     # Compare against Taylor series
