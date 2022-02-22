@@ -3,23 +3,23 @@ module Shapes
 export flattop, box, blackman
 
 
-@doc raw"""Flat shape (one) with a switch-on/switch-off from zero.
+@doc raw"""Flat shape (amplitude 1.0) with a switch-on/switch-off from zero.
 
 ```julia
-flattop(t; t₀, T, t_rise, t_fall=t_rise, func=:blackman)
+flattop(t; T, t_rise, t₀=0.0, t_fall=t_rise, func=:blackman)
 ```
 
-evaluates a shape function that starts at 0 at $t=t₀$, and ramps to to 1 during
-the `t_rise` interval. The function then remains at value 1, before ramping
-down to 0 again during the interval `t_fall` before `T`. For $t < t₀$ and
-$t > T$, the shape is zero.
+evaluates a shape function that starts at 0 at ``t=t₀``, and ramps to to 1
+during the `t_rise` interval. The function then remains at value 1, before
+ramping down to 0 again during the interval `t_fall` before `T`. For ``t < t₀``
+and ``t > T``, the shape is zero.
 
 The default switch-on/-off shape is half of a Blackman window (see
 [`blackman`](@ref)).
 
 For `func=:sinsq`, the switch-on/-off shape is a sine-squared curve.
 """
-function flattop(t; T, t_rise, t₀=0, t_fall=t_rise, func=:blackman)
+function flattop(t; T, t_rise, t₀=0.0, t_fall=t_rise, func=:blackman)
     if func == :blackman
         return flattop_blackman(t, t₀, T, t_rise, t_fall)
     elseif func == :sinsq
