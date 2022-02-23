@@ -129,10 +129,16 @@ end
 
 
 # `propagate_objective` backend (note `wrk` argument instead of `method`)
-function _propagate_objective(obj, tlist, wrk; controls_map=IdDict(), kwargs...)
+function _propagate_objective(
+    obj,
+    tlist,
+    wrk;
+    initial_state=obj.initial_state,
+    controls_map=IdDict(),
+    kwargs...
+)
     genfunc = objective_genfunc(obj, tlist; controls_map=controls_map)
-    return QuantumPropagators._propagate(obj.initial_state, genfunc, tlist, wrk; kwargs...)
-
+    return QuantumPropagators._propagate(initial_state, genfunc, tlist, wrk; kwargs...)
 end
 
 
