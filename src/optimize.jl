@@ -60,6 +60,8 @@ function optimize_or_load(
     verbose=true,
     wsave_kwargs=Dict(),
     savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
+    metadata=nothing,
+    dry_run=false,
     kwargs...
 )
 
@@ -76,8 +78,19 @@ function optimize_or_load(
         )
     end
 
-    if isfile(joinpath(path, filename))
-        @info "Loading result from $(joinpath(path, filename))"
+    file = joinpath(path, filename)
+    if dry_run
+        if verbose
+            if isfile(file)
+                @info "Would load result from $file"
+            else
+                @info "Would optimize and store in $file"
+            end
+        end
+        return nothing, file
+    end
+    if isfile(file) && verbose
+        @info "Loading result from $file"
     end
 
     data, file = DrWatson.produce_or_load(
@@ -100,6 +113,7 @@ function optimize_or_load(
         if !isnothing(_filter)
             data = _filter(data)
         end
+        !isnothing(metadata) && merge!(data, metadata)
         return data
     end
 
@@ -130,6 +144,8 @@ result, file = @optimize_or_load(
     verbose=true,
     wsave_kwargs=Dict(),
     savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
+    metadata=nothing,
+    dry_run=false,
     kwargs...
 )
 ```
@@ -141,12 +157,17 @@ overriden by passing an explicit `filename`. The full path to the output file
 (`joinpath(path, filename)`) is returned as `file`.
 
 In addition to the `result`, the data in the output `file` may also contain
-some metadata, e.g. "gitcommit" containing the git commit hash of the project
-the produced the file, and "script" with the file name and line number
-where `@optimize_or_load` was called, see [`load_optimization`](@ref).
+some metadata, e.g. (automatically) "gitcommit" containing the git commit hash
+of the project the produced the file, and "script" with the file name and line
+number where `@optimize_or_load` was called, see [`load_optimization`](@ref).
+If `metadata` is given as a dict on input, the data it contains will be
+included in the output file.
 
 If `file` already exists (and `force=false`), load the `result` from that file
 instead of running the optimization.
+
+If `dry_run=true`, return `(nothing, file)`. Depending on `verbose`, this will
+print information about whether `file` would be loaded or generated.
 
 The `@optimize_or_load` macro is intended to integrate well with the
 [`DrWatson`](https://juliadynamics.github.io/DrWatson.jl/stable/) framework
