@@ -44,6 +44,11 @@ using SafeTestsets
         include("test_optimize_kwargs.jl")
     end
 
+    print("\n* Dummy Optimization (test_dummy_optimization.jl):")
+    @time @safetestset "Dummy Optimization" begin
+        include("test_dummy_optimization.jl")
+    end
+
     print("\n")
 
 end;
