@@ -229,6 +229,11 @@ function Base.length(Ψ::GradVector)
 end
 
 
+function Base.size(G::GradGenerator)
+    return Base.size(G.G)
+end
+
+
 function Base.similar(Ψ::GradVector)
     return GradVector(similar(Ψ.state), [similar(ϕ) for ϕ ∈ Ψ.grad_states])
 end
