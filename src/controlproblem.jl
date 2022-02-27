@@ -101,14 +101,14 @@ functional.
 The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
-struct ControlProblem{OT<:AbstractControlObjective,OPT<:AbstractDict,KWT}
+struct ControlProblem{OT<:AbstractControlObjective,OPT<:AbstractDict}
     objectives::Vector{OT}
     pulse_options::OPT # TODO: make this optional?
     tlist::Vector{Float64}
-    kwargs::KWT
+    kwargs::Dict{Symbol,Any}
     function ControlProblem(; objectives, pulse_options, tlist, kwargs...)
-        kwargs_dict = Dict(kwargs)  # make the kwargs mutable
-        new{typeof(objectives[1]),typeof(pulse_options),typeof(kwargs_dict)}(
+        kwargs_dict = Dict{Symbol,Any}(kwargs)  # make the kwargs mutable
+        new{typeof(objectives[1]),typeof(pulse_options)}(
             objectives,
             pulse_options,
             tlist,
