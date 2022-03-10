@@ -1,6 +1,6 @@
 import LinearAlgebra
 import QuantumPropagators
-import Base: -
+import Base: -, *
 
 @doc raw"""Extended generator for the standard dynamic gradient.
 
@@ -59,13 +59,13 @@ e.g., in the process of evaluating a piecewise-constant time propagation.
 struct GradGenerator{GT,CGT}
     G::GT
     control_derivs::Vector{CGT}
+end
 
-    function GradGenerator(G_of_t::TimeDependentGradGenerator)
-        dummy_vals = IdDict(control => 1.0 for control in G_of_t.controls)
-        G = evalcontrols(G_of_t.G, dummy_vals)
-        control_derivs = [μ(1.0) for μ in G_of_t.control_derivs]
-        new{typeof(G),eltype(control_derivs)}(G, control_derivs)
-    end
+function GradGenerator(G_of_t::TimeDependentGradGenerator)
+    dummy_vals = IdDict(control => 1.0 for control in G_of_t.controls)
+    G = evalcontrols(G_of_t.G, dummy_vals)
+    control_derivs = [μ(1.0) for μ in G_of_t.control_derivs]
+    GradGenerator{typeof(G),eltype(control_derivs)}(G, control_derivs)
 end
 
 
@@ -255,6 +255,16 @@ function -(Ψ::GradVector, Φ::GradVector)
     end
     return res
 end
+
+
+function *(G::GradGenerator, α::Number)
+    GradGenerator{typeof(G.G),eltype(G.control_derivs)}(
+        G.G * α,
+        [CG * α for CG in G.control_derivs]
+    )
+end
+
+*(α::Number, G::GradGenerator) = *(G::GradGenerator, α::Number)
 
 
 struct DenseGradExpPropWrk{T}
