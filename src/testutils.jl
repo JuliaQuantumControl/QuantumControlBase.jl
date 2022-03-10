@@ -1,8 +1,14 @@
 module TestUtils
 
-export random_complex_matrix, random_real_matrix, random_hermitian_matrix
-export random_complex_sparse_matrix, random_real_sparse_matrix
-export random_hermitian_sparse_matrix, random_state_vector
+export random_complex_matrix,
+    random_real_matrix,
+    random_hermitian_matrix,
+    random_complex_sparse_matrix,
+    random_real_sparse_matrix,
+    random_hermitian_sparse_matrix,
+    random_state_vector,
+    random_hermitian_real_matrix,
+    random_hermitian_sparse_real_matrix
 export dummy_control_problem
 export test
 
@@ -177,6 +183,20 @@ random_hermitian_matrix(N, ρ)
 function random_hermitian_matrix(N, ρ)
     σ = 1 / √N
     d = Normal(0.0, σ)
+    X = (rand(d, (N, N)) + rand(d, (N, N)) * 1im) / √2
+    H = ρ * (X + X') / (2 * √2)
+end
+
+
+"""Construct a random Hermitian real matrix of size N×N with spectral radius ρ.
+
+```julia
+random_hermitian_real_matrix(N, ρ)
+```
+"""
+function random_hermitian_real_matrix(N, ρ)
+    σ = 1 / √N
+    d = Normal(0.0, σ)
     X = rand(d, (N, N))
     H = ρ * (X + X') / (2 * √2)
 end
@@ -231,6 +251,27 @@ elements).
 function random_hermitian_sparse_matrix(N, ρ, sparsity)
     σ = 1 / √(sparsity * N)
     d = Normal(0.0, σ)
+    H1 = sprand(N, N, sparsity, (dims...) -> rand(d, dims...))
+    H2 = copy(H1)
+    H2.nzval .= rand(d, length(H2.nzval))
+    X = (H1 + H2 * 1im) / √2
+    return 0.5ρ * (X + X') / √2
+end
+
+
+"""Construct a random sparse Hermitian real matrix.
+
+```julia
+random_hermitian_sparse_real_matrix(N, ρ, sparsity)
+```
+
+returns a matrix of size N×N with spectral radius ρ and the given sparsity
+(number between zero and one that is the approximate fraction of non-zero
+elements).
+"""
+function random_hermitian_sparse_real_matrix(N, ρ, sparsity)
+    σ = 1 / √(sparsity * N)
+    d = Normal(0.0, σ)
     H = sprand(N, N, sparsity, (dims...) -> rand(d, dims...))
     return 0.5ρ * (H + H') / √2
 end
@@ -254,7 +295,7 @@ end
 ```julia
 problem = dummy_control_problem(;
     N=10, n_objectives=1, n_controls=1, n_steps=50, dt=1.0, sparsity=0.5,
-    kwargs...)
+    complex_operators=true, hermitian=true, kwargs...)
 ```
 
 Sets up a control problem with random (sparse) Hermitian matrices.
@@ -271,6 +312,9 @@ Sets up a control problem with random (sparse) Hermitian matrices.
 * `dt`: The time step
 * `sparsity`: The sparsity of the Hamiltonians, as a number between 0.0 and
   1.0. For `sparsity=1.0`, the Hamiltonians will be dense matrices.
+* `complex_operators`: Whether or not the drift/control operators will be
+  complex-valued or real-valued.
+* `hermitian`: Whether or not all drift/control operators will be Hermitian matrices.
 * `kwargs`: All other keyword arguments are passed on to
   [`ControlProblem`](@ref)
 """
@@ -281,6 +325,8 @@ function dummy_control_problem(;
     n_steps=50,
     dt=1.0,
     sparsity=0.5,
+    complex_operators=true,
+    hermitian=true,
     kwargs...
 )
 
@@ -292,18 +338,39 @@ function dummy_control_problem(;
     end
     controls = [discretize(pulse, tlist) for pulse in pulses]
 
-    hamiltonian = []
-    if sparsity < 1.0
-        push!(hamiltonian, random_hermitian_sparse_matrix(N, 1.0, sparsity))
-    else
-        push!(hamiltonian, random_hermitian_matrix(N, 1.0))
-    end
-    for control ∈ controls
+    function random_op(N, ρ, sparsity, complex_operators, hermitian)
         if sparsity < 1.0
-            H_c = random_hermitian_sparse_matrix(N, 1.0, sparsity)
+            if hermitian
+                if complex_operators
+                    H = random_hermitian_sparse_matrix(N, ρ, sparsity)
+                end
+            else
+                if complex_operators
+                    H = random_complex_sparse_matrix(N, ρ, sparsity)
+                end
+            end
         else
-            H_c = random_hermitian_matrix(N, 1.0)
+            if hermitian
+                if complex_operators
+                    H = random_hermitian_matrix(N, ρ)
+                else
+                    H = random_hermitian_real_matrix(N, ρ)
+                end
+            else
+                if complex_operators
+                    H = random_complex_matrix(N, ρ)
+                else
+                    H = random_real_matrix(N, ρ)
+                end
+            end
         end
+    end
+
+    hamiltonian = []
+    H_0 = random_op(N, 1.0, sparsity, complex_operators, hermitian)
+    push!(hamiltonian, H_0)
+    for control ∈ controls
+        H_c = random_op(N, 1.0, sparsity, complex_operators, hermitian)
         push!(hamiltonian, (H_c, control))
     end
 

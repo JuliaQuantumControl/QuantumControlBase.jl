@@ -3,7 +3,8 @@ import Base
 """Base class for a single optimization objective.
 
 All objectives must have a field `initial_state` and a field `generator`, at
-minimum.
+minimum. Also, objectives must be able to be instantiated via keyword
+arguments.
 """
 abstract type AbstractControlObjective end
 
@@ -13,12 +14,12 @@ abstract type AbstractControlObjective end
 ```julia
 Objective(;
     initial_state=<initial_state>,
-    generator=<genenerator>,
+    generator=<generator>,
     target_state=<target_state>
 )
 ```
 
-describes an optimization objective where the time evoluation of the given
+describes an optimization objective where the time evaluation of the given
 `initial_state` under the given `generator` aims towards `target_state`. The
 `generator` here is e.g. a time-dependent Hamiltonian or Liouvillian.
 
@@ -132,10 +133,12 @@ end
 function dynamical_generator_adjoint(G::Tuple)
     result = []
     for part in G
+        # `copy` materializes the `adjoint` view, so we don't end up with
+        # unnecessary `Adjoint{Matrix}` instead of Matrix, for example
         if isa(part, Tuple)
-            push!(result, (Base.adjoint(part[1]), part[2]))
+            push!(result, (copy(Base.adjoint(part[1])), part[2]))
         else
-            push!(result, Base.adjoint(part))
+            push!(result, copy(Base.adjoint(part)))
         end
     end
     return Tuple(result)
@@ -145,50 +148,46 @@ end
 dynamical_generator_adjoint(G) = Base.adjoint(G)
 
 
-"""
+"""Construct the adjoint of an optimization objective.
+
 ```julia
 adjoint(objective)
 ```
 
 Adjoint of a control objective. The adjoint objective contains the adjoint of
-the dynamical generator `obj.generator`, and adjoints of the
-`obj.initial_state` / `obj.target_state` if these exist and have an adjoint.
-"""
-function Base.adjoint(obj::Objective)
-    initial_state_adj = obj.initial_state
-    try
-        initial_state_adj = Base.adjoint(obj.initial_state)
-    catch
-    end
-    generator_adj = dynamical_generator_adjoint(obj.generator)
-    target_adj = obj.target_state
-    try
-        target_adj = Base.adjoint(obj.target_state)
-    catch
-    end
-    return Objective(
-        initial_state=initial_state_adj,
-        generator=generator_adj,
-        target_state=target_adj
-    )
-end
+the dynamical generator `obj.generator`. It also contains the adjoints of all
+other fields (`initial_state`, etc.) if they are defined, or a copy of the
+original field value otherwise.
 
-function Base.adjoint(obj::WeightedObjective)
-    initial_state_adj = obj.initial_state
-    try
-        initial_state_adj = Base.adjoint(obj.initial_state)
-    catch
+The primary purpose of this adjoint is to facilitate the backward propagation
+under the adjoint generator that is central to gradient-based optimization
+methods such as GRAPE and Krotov's method.
+"""
+function Base.adjoint(obj::AbstractControlObjective)
+    fields = propertynames(obj)
+    adjoints = Dict{Symbol,Any}()  # field => adjoint value
+    for field ∈ fields
+        if field == :generator
+            # For the generator, the adjoint *must* be defined. GRAPE and
+            # Krotov critically depend on this for the backward prop
+            adjoints[field] = dynamical_generator_adjoint(obj.generator)
+        else
+            # Any other field, it doesn't really matter too much whether
+            # we take the adjoint or not (none of the normal optimization
+            # methods depend on anything but the generator being the adjoint)
+            adj_value = getproperty(obj, field)
+            try
+                adj_value = Base.adjoint(adj_value)
+            catch
+                # if we can't do an adjoint, we'll keep the original value
+            end
+            try
+                adjoints[field] = copy(adj_value)
+            catch
+                # `copy` isn't available e.g. for Strings
+                adjoints[field] = adj_value
+            end
+        end
     end
-    generator_adj = dynamical_generator_adjoint(obj.generator)
-    target_adj = obj.target_state
-    try
-        target_adj = Base.adjoint(obj.target_state)
-    catch
-    end
-    return WeightedObjective(
-        initial_state=initial_state_adj,
-        generator=generator_adj,
-        target_state=target_adj,
-        weight=obj.weight
-    )
+    return typeof(obj).name.wrapper(; adjoints...)
 end
