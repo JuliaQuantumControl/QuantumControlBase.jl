@@ -11,9 +11,10 @@ using Zygote
 
     N = 10  # size of Hilbert space
     ρ = 1.0  # spectral radius
-    Ĥ₀ = random_hermitian_matrix(N, ρ)
-    Ĥ₁ = random_hermitian_matrix(N, ρ)
-    Ĥ₂ = random_hermitian_matrix(N, ρ)
+    # We'll test with non-Hermitian Hamiltonians
+    Ĥ₀ = random_complex_matrix(N, ρ)
+    Ĥ₁ = random_complex_matrix(N, ρ)
+    Ĥ₂ = random_complex_matrix(N, ρ)
     Zero = zeros(ComplexF64, N, N)
     ϵ₁ = t -> 1.0
     ϵ₂ = t -> 1.0
@@ -32,7 +33,8 @@ using Zygote
 
     Û_Ψ = exp(-𝕚 * Ĥ * dt) * Ψ
 
-    Ψ̃ = GradVector(Ψ, 2)
+    num_controls = length(Ĥ_of_t) - 1
+    Ψ̃ = GradVector(Ψ, num_controls)
     # did the initialization work?
     @test norm(Ψ̃.state - Ψ) < 1e-14
     @test norm(Ψ̃.grad_states[1]) == 0.0
@@ -66,15 +68,40 @@ using Zygote
     # This checks whether the application of a GradGenerator to a GradVector an
     # all the linear-algebra methods are implemented correctly
 
-    #! format: off
-    G̃_full = vcat(hcat(Ĥ,    Zero, Ĥ₁),
-                  hcat(Zero, Ĥ,    Ĥ₂),
-                  hcat(Zero, Zero, Ĥ))
+    G̃_full = [
+         Ĥ    Zero  Ĥ₁
+        Zero   Ĥ    Ĥ₂
+        Zero  Zero  Ĥ
+    ]
 
-    Ψ̃_full = vcat(Ψ̃.grad_states[1],
-                  Ψ̃.grad_states[2],
-                  Ψ̃.state)
-    #! format: on
+    Ψ̃_full = [
+        Ψ̃.grad_states[1]
+        Ψ̃.grad_states[2]
+        Ψ̃.state
+    ]
+
+    # proper initialization? grad_states should be zero
+    @test norm(Ψ̃_full) == norm(Ψ̃.state) == norm(Ψ)
+
+    Ψ̃_out_full = exp(-𝕚 * G̃_full * dt) * Ψ̃_full
+    # propagation correct?
+    @test norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-12
+
+    # do we get the same results as from newton?
+    @test norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-12
+    @test norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-12
+    @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-12
+
+    ###########################################################################
+    # Test custom expprop
+
+
+    Ψ̃_full = [
+        Ψ̃.grad_states[1]
+        Ψ̃.grad_states[2]
+        Ψ̃.state
+    ]
+
     # proper initialization? grad_states should be zero
     @test norm(Ψ̃_full) == norm(Ψ̃.state) == norm(Ψ)
 
@@ -105,14 +132,19 @@ using Zygote
     # controls is correct (the literature generally only gives the expression
     # for a single control)
 
-    #! format: off
-    G̃_full1 = vcat(hcat(Ĥ,    Ĥ₁),
-                   hcat(Zero, Ĥ))
-    G̃_full2 = vcat(hcat(Ĥ,    Ĥ₂),
-                   hcat(Zero, Ĥ))
-    Ψ̃_full1 = vcat(Ψ̃.grad_states[1],
-                   Ψ̃.state)
-    #! format: on
+    G̃_full1 = [
+         Ĥ   Ĥ₁
+        Zero Ĥ
+    ]
+    G̃_full2 = [
+         Ĥ   Ĥ₂
+        Zero Ĥ
+    ]
+    Ψ̃_full1 = [
+        Ψ̃.grad_states[1]
+        Ψ̃.state
+    ]
+
     @test maximum(abs.(Ψ)) == ψ_max  # is Ψ still exactly the same state?
     @test norm(Ψ̃_full1) == norm(Ψ)  # initialization correct?
     Ψ̃_full2 = vcat(Ψ̃.grad_states[2], Ψ̃.state)
@@ -136,19 +168,47 @@ using Zygote
     # (since Zygote can only calculate the gradient for a scalar function, in
     # this case the square-modulus of the overlap with a target)
 
-    F_sm(ϵ₁, ϵ₂) = abs(dot(Ψtgt, exp(-1im * (Ĥ₀ + ϵ₁ * Ĥ₁ + ϵ₂ * Ĥ₂) * dt) * Ψ))^2
+    function F_sm(ϵ₁, ϵ₂)
+        Û = exp(-𝕚 * (Ĥ₀ + ϵ₁ * Ĥ₁ + ϵ₂ * Ĥ₂) * dt)
+        Ψ_T = Û * Ψ
+        return abs2(Ψtgt ⋅ Ψ_T)
+    end
     grad_zygote = collect(gradient(F_sm, 1.0, 1.0))
 
     @test norm(Ψ̃_out.state - Û_Ψ) < 1e-12  # still correct?
-    τ = dot(Ψtgt, Û_Ψ)
+    τ = Ψtgt ⋅ Û_Ψ
     # `grad` is gradient of F_sm based on Newton-prop of GradGenerator
     # For ∂F/∂τ see Eq. (3.47) of Phd Thesis of Michael Goerz
     grad = [
-        2 * real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[1])),
-        2 * real(conj(τ) * dot(Ψtgt, Ψ̃_out.grad_states[2]))
+        2 * real(conj(τ) * (Ψtgt ⋅ Ψ̃_out.grad_states[1])),
+        2 * real(conj(τ) * (Ψtgt ⋅ Ψ̃_out.grad_states[2]))
     ]
     @test abs(grad_zygote[1] - grad[1]) < 1e-9
     @test abs(grad_zygote[2] - grad[2]) < 1e-9
+
+    ###########################################################################
+    # Backward-propagation of GradVector
+    # This is a change of perspective from τ = ⟨Ψtgt | ⋅ (Û |Ψ⟩)
+    # to τ = (⟨Ψtgt | Û) ⋅ |Ψ⟩) = ⟨χ|Ψ⟩ with |χ⟩ = exp[i Ĥ⁺ dt] |Ψtgt⟩. That
+    # is, instead of forward-propagating the initial state, we
+    # backward-propagate the target state
+
+    χ̃ = GradVector(Ψtgt, num_controls)
+    wrk_bw = NewtonWrk(χ̃)
+    Ĥ_adj_of_t = (copy(Ĥ₀'), (copy(Ĥ₁'), ϵ₁), (copy(Ĥ₂'), ϵ₂))
+    G̃_adj_of_t = TimeDependentGradGenerator(Ĥ_adj_of_t)
+    G̃_adj = evalcontrols(G̃_adj_of_t, vals_dict)
+    newton!(χ̃, G̃_adj, -dt, wrk)
+    χ̃_out = copy(χ̃)
+    Ψtgt_Û = χ̃_out.state
+    τ_bw = Ψtgt_Û ⋅ Ψ
+    @test τ_bw ≈ τ
+    grad_bw = [
+        2 * real(conj(τ_bw) * (χ̃_out.grad_states[1] ⋅ Ψ)),
+        2 * real(conj(τ_bw) * (χ̃_out.grad_states[2] ⋅ Ψ))
+    ]
+    @test grad_bw[1] ≈ grad[1]
+    @test grad_bw[2] ≈ grad[2]
 
     ###########################################################################
     # Compare against Taylor series
