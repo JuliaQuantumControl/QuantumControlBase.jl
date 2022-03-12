@@ -34,6 +34,11 @@ using SafeTestsets
         include("test_gradgen.jl")
     end
 
+    print("\n* Functionals (test_functionals.jl):")
+    @time @safetestset "Functionals" begin
+        include("test_functionals.jl")
+    end
+
     print("\n* Infohook (test_infohook.jl):")
     @time @safetestset "Infohook" begin
         include("test_infohook.jl")

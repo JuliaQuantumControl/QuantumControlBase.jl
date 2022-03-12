@@ -19,6 +19,9 @@ Pages = ["index.md"]
 
 ## Reference
 
+``\gdef\tgt{\text{tgt}}``
+``\gdef\tr{\operatorname{tr}}``
+
 ```@autodocs
 Modules = [QuantumControlBase, QuantumControlBase.Shapes, QuantumControlBase.Functionals, QuantumControlBase.ConditionalThreads, QuantumControlBase.TestUtils]
 ```

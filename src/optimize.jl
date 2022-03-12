@@ -81,7 +81,7 @@ function optimize_or_load(
     file = joinpath(path, filename)
     if dry_run
         if verbose
-            if isfile(file)
+            if isfile(file) && !force
                 @info "Would load result from $file"
             else
                 @info "Would optimize and store in $file"
@@ -90,7 +90,11 @@ function optimize_or_load(
         return nothing, file
     end
     if isfile(file) && verbose
-        @info "Loading result from $file"
+        if force
+            @info "Ignoring existing $file (force)"
+        else
+            @info "Loading result from $file"
+        end
     end
 
     data, file = DrWatson.produce_or_load(
