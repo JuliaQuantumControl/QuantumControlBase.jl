@@ -206,6 +206,9 @@ function LinearAlgebra.dot(Ψ::GradVector, Φ::GradVector)
 end
 
 
+LinearAlgebra.ishermitian(G::GradGenerator) = false
+
+
 function Base.copyto!(dest::GradVector, src::GradVector)
     copyto!(dest.state, src.state)
     for i = 1:length(src.grad_states)
