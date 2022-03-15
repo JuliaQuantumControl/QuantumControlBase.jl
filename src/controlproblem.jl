@@ -39,6 +39,30 @@ struct Objective{ST,GT} <: AbstractControlObjective
 end
 
 
+"""Minmal optimization objective (initial state and dynamical generator only).
+
+```julia
+Objective(;
+    initial_state=<initial_state>,
+    generator=<generator>,
+)
+```
+
+describes and optimization objective like the standard [`Objective`](@ref),
+except for functionals that are not expressed with respect to some
+`target_state`. Having only an `initial_state` and a `generator`, this is the
+minimal data structure that is a valid instance of
+[`AbstractControlObjective`](@ref).
+"""
+struct MinimalObjective{ST,GT} <: AbstractControlObjective
+    initial_state::ST
+    generator::GT
+    function MinimalObjective(; initial_state::ST, generator::GT) where {ST,GT}
+        new{ST,GT}(initial_state, generator)
+    end
+end
+
+
 """Standard optimization objective with a weight.
 
 ```julia
