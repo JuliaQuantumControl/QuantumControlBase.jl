@@ -1,10 +1,12 @@
 module QuantumControlBase
 
+include("conditionalthreads.jl")   # submodule ConditionalThreads
+
 include("controlproblem.jl")
 export ControlProblem, Objective, MinimalObjective, WeightedObjective
 
 include("propagate.jl")
-export propagate_objective
+export propagate_objective, propagate_objectives
 
 include("controls.jl")
 export discretize, discretize_on_midpoints
@@ -22,7 +24,6 @@ export chain_infohooks
 
 include("shapes.jl")               # submodule Shapes
 include("functionals.jl")          # submodule Functionals
-include("conditionalthreads.jl")   # submodule ConditionalThreads
 include("testutils.jl")            # submodule TestUtils
 include("saving.jl")               # submodule Saving
 

@@ -1,6 +1,7 @@
 """Extension of QuantumPropagators.propagate for control objectives."""
 
 import QuantumPropagators
+import .ConditionalThreads: @threadsif
 
 """Construct a `genfunc` suitable for propagating an objective.
 
@@ -139,6 +140,53 @@ function _propagate_objective(
 )
     genfunc = objective_genfunc(obj, tlist; controls_map=controls_map)
     return QuantumPropagators._propagate(initial_state, genfunc, tlist, wrk; kwargs...)
+end
+
+
+"""Propagate multiple objectives in parallel.
+
+```julia
+result = propagate_objectives(objectives, tlist; use_threads=true, kwargs...)
+```
+
+runs [`propagate_objective`](@ref) for every objective in `objectives`,
+collects and returns a vector of results. The propagation happens in parallel
+if `use_threads=true` (default). All keyword parameters are passed to
+[`propagate_objective`](@ref), except that if `initial_state` is given, it must
+be a vector of initial states, one for each objective. Likewise, to pass
+pre-allocated storage arrays to `storage`, a vector of storage arrays must be
+passed. A simple `storage=true` will still work to return a vector of storage
+results.
+"""
+function propagate_objectives(
+    objectives,
+    tlist;
+    use_threads=true,
+    storage=nothing,
+    initial_state=[obj.initial_state for obj in objectives],
+    kwargs...
+)
+    result = Vector{Any}(undef, length(objectives))
+    @threadsif use_threads for (k, obj) in collect(enumerate(objectives))
+        if isnothing(storage) || (storage isa Bool)
+            result[k] = propagate_objective(
+                obj,
+                tlist;
+                storage=storage,
+                initial_state=initial_state[k],
+                kwargs...
+            )
+        else
+            result[k] = propagate_objective(
+                obj,
+                tlist;
+                storage=storage[k],
+                initial_state=initial_state[k],
+                kwargs...
+            )
+        end
+    end
+    return [result...]  # choose an atomatic eltype
 end
 
 
