@@ -39,6 +39,11 @@ using SafeTestsets
         include("test_functionals.jl")
     end
 
+    print("\n* Weyl Chamber (test_weyl_chamber.jl):")
+    @time @safetestset "Weyl Chamber" begin
+        include("test_weyl_chamber.jl")
+    end
+
     print("\n* Infohook (test_infohook.jl):")
     @time @safetestset "Infohook" begin
         include("test_infohook.jl")

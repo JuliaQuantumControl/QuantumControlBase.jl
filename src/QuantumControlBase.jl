@@ -24,6 +24,7 @@ export chain_infohooks
 
 include("shapes.jl")               # submodule Shapes
 include("functionals.jl")          # submodule Functionals
+include("weyl_chamber.jl")         # submodule WeylChamber
 include("testutils.jl")            # submodule TestUtils
 include("saving.jl")               # submodule Saving
 

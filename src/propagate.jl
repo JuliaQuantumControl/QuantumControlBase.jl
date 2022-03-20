@@ -203,8 +203,13 @@ function initobjpropwrk(
     tlist,
     method::Val;
     initial_state=obj.initial_state,
+    info_msg=nothing,
+    verbose=false,
     kwargs...
 )
+    if verbose && !isnothing(info_msg)
+        @info info_msg
+    end
     controls = getcontrols(obj.generator)
     controlvals = [discretize(control, tlist) for control in controls]
     # We'll construct some examplary dynamical generators. This is mainly for
@@ -227,6 +232,7 @@ function initobjpropwrk(
         G_zero,
         G_max,
         G_min;
+        verbose=verbose,
         kwargs...
     )
 end

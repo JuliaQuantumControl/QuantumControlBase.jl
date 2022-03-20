@@ -1,13 +1,15 @@
 module Functionals
 
 export J_T_ss, J_T_sm, J_T_re
+export gate_functional, make_gate_chi
 export make_gradient, make_chi
 
 import ..WeightedObjective
 
 
 using LinearAlgebra
-using Zygote
+using Zygote: Zygote
+using FiniteDifferences: FiniteDifferences
 
 
 @doc raw"""
@@ -336,6 +338,98 @@ function chi_re!(χ, ϕ, objectives; τ=nothing)
 end
 
 
+
+
+"""Convert a functional from acting on a gate to acting on propagated states.
+
+```
+J_T = gate_functional(J_T_U; kwargs...)
+```
+
+constructs a functional `J_T` that meets the requirements for
+[`make_gradient`](@ref) and [`make_chi`](@ref). That is, the output `J_T` takes
+positional positional arguments `ϕ` and `objectives`. The input functional
+`J_T_U` is assumed to have the signature `J_T_U(U; kwargs...)` where `U` is a
+matrix with elements ``U_{ij} = ⟨Ψ_i|ϕ_j⟩``, where ``|Ψ_i⟩`` is the
+`initial_state` of the i'th `objectives` (assumed to be the i'th canonical
+basis state) and ``|ϕ_j⟩`` is the result of forward-propagating ``|Ψ_j⟩``. That
+is, `U` is the projection of the time evolution operator into the subspace
+defined by the basis in the `initial_states` of the  `objectives`.
+"""
+function gate_functional(J_T_U; kwargs...)
+
+    function J_T(ϕ, objectives; τ=nothing)
+        N = length(objectives)
+        U = [(objectives[i].initial_state ⋅ ϕ[j]) for i = 1:N, j = 1:N]
+        return J_T_U(U; kwargs...)
+    end
+
+    return J_T
+
+end
+
+
+@doc raw"""
+Return a function to evaluate ``|χ_k⟩ = -∂J_T(Û)/∂⟨ϕ_k|`` via the chain rule.
+
+```julia
+chi! = make_gate_chi(J_T_U, objectives; use_finite_differences=false, kwargs...)
+```
+
+returns a function equivalent to
+
+```julia
+chi! = make_chi(gate_functional(J_T_U; kwargs...), objectives)
+```
+
+```math
+\begin{split}
+    |χ_k⟩
+    &= -\frac{∂}{∂⟨ϕ_k|} J_T \\
+    &= - \frac{1}{2} \sum_i (∇_U J_T)_{ik} \frac{∂ U_{ik}}{∂⟨ϕ_k|} \\
+    &= - \frac{1}{2} \sum_i (∇_U J_T)_{ik} |Ψ_i⟩
+\end{split}
+```
+
+where ``|Ψ_i⟩`` is the basis state stored as the `initial_state` of the i'th
+`objective`, see [`gate_functional`](@ref).
+
+The gradient ``∇_U J_T`` is obtained via automatic differentiation, or via
+finite differences if `use_finite_differences=true`.
+
+Compared to the more general [`make_chi`](@ref), `make_gate_chi` will generally
+have a slightly smaller numerical overhead, as it pushes the use of automatic
+differentiation down by one level.
+
+With `use_finite_differences=true`, this routine serves to test and debug
+gradients for gate functionals obtained by automatic differentiation.
+"""
+function make_gate_chi(J_T_U, objectives; use_finite_differences=false, kwargs...)
+
+    N = length(objectives)
+    basis = [obj.initial_state for obj in objectives]
+
+    function zygote_gate_chi!(χ, ϕ, objectives; τ=nothing)
+        function _J_T(U)
+            -J_T_U(U; kwargs...)
+        end
+        U = [basis[i] ⋅ ϕ[j] for i = 1:N, j = 1:N]
+        if use_finite_differences
+            fdm = FiniteDifferences.central_fdm(5, 1)
+            ∇J = FiniteDifferences.grad(fdm, gate -> _J_T(gate), U)[1]
+        else
+            ∇J = Zygote.gradient(gate -> _J_T(gate), U)[1]
+        end
+        for k = 1:N
+            χ[k] .= 0.5 * sum([∇J[i, k] * basis[i] for i = 1:N])
+        end
+    end
+
+    return zygote_gate_chi!
+
+end
+
+
 @doc raw"""Gradient for an arbitrary functional evaluated via χ-states.
 
 ```julia
@@ -628,5 +722,6 @@ make_analytic_chi(J_T, objectives) = make_zygote_chi(J_T, objectives)
 make_analytic_chi(::typeof(J_T_sm), objectives) = chi_sm!
 make_analytic_chi(::typeof(J_T_re), objectives) = chi_re!
 make_analytic_chi(::typeof(J_T_ss), objectives) = chi_ss!
+
 
 end
