@@ -1,5 +1,4 @@
 using Test
-using DelimitedFiles
 using LinearAlgebra
 using QuantumControlBase: MinimalObjective
 using QuantumControlBase.Functionals
