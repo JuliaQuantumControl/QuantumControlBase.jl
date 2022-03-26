@@ -25,9 +25,12 @@ function objective_genfunc(obj::AbstractControlObjective, tlist; controls_map=Id
 
     zero_vals = IdDict(control => 0 for control in controls)
     G = evalcontrols(obj.generator, zero_vals)
+    vals_dict = IdDict(control => pulses[j][1] for (j, control) in enumerate(controls))
 
     function genfunc(tlist, i; kwargs...)
-        vals_dict = IdDict(control => pulses[j][i] for (j, control) in enumerate(controls))
+        for (j, control) in enumerate(controls)
+            vals_dict[control] = pulses[j][i]
+        end
         evalcontrols!(G, obj.generator, vals_dict)
         return G
     end
@@ -242,7 +245,7 @@ function initobjpropwrk(
     obj::AbstractControlObjective,
     tlist,
     method::Symbol;
-    initial_state,
+    initial_state=obj.initial_state,
     kwargs...
 )
     return initobjpropwrk(obj, tlist, Val(method); initial_state=initial_state, kwargs...)
@@ -253,7 +256,7 @@ function initobjpropwrk(
     obj::AbstractControlObjective,
     tlist,
     method::Val{:newton};
-    initial_state,
+    initial_state=obj.initial_state,
     kwargs...
 )
     return QuantumPropagators.initpropwrk(initial_state, tlist, method; kwargs...)
@@ -264,7 +267,7 @@ function initobjpropwrk(
     obj::AbstractControlObjective,
     tlist,
     method::Val{:expprop};
-    initial_state,
+    initial_state=obj.initial_state,
     kwargs...
 )
     return QuantumPropagators.initpropwrk(initial_state, tlist, method; kwargs...)

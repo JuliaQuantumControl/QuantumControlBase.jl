@@ -209,6 +209,11 @@ end
 LinearAlgebra.ishermitian(G::GradGenerator) = false
 
 
+function Base.isreal(G::GradGenerator)
+    return (isreal(G.G) && all(isreal(D for D in G.control_derivs)))
+end
+
+
 function Base.copyto!(dest::GradVector, src::GradVector)
     copyto!(dest.state, src.state)
     for i = 1:length(src.grad_states)
@@ -294,6 +299,16 @@ function QuantumPropagators.initpropwrk(
     kwargs...
 ) where {T}
     return DenseGradExpPropWrk(state, generator[1])
+end
+
+
+function QuantumPropagators.SpectralRange.random_state(H::GradGenerator)
+    state = QuantumPropagators.SpectralRange.random_state(H.G)
+    grad_states = [
+        QuantumPropagators.SpectralRange.random_state(H.G) for
+        i = 1:length(H.control_derivs)
+    ]
+    return GradVector{typeof(state)}(state, grad_states)
 end
 
 

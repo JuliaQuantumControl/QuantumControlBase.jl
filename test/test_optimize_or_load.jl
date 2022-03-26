@@ -13,7 +13,8 @@ using QuantumControlBase.TestUtils
             problem;
             method=:dummymethod,
             filename="dry-run.jld2",
-            dry_run=true
+            dry_run=true,
+            verbose=true
         )
     @test isnothing(result)
     @test file == file_expected

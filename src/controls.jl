@@ -259,16 +259,16 @@ acts as [`evalcontrols`](@ref), but modifies `G` in-place.
 function evalcontrols!(G, generator::Tuple, vals_dict::D) where {D<:AbstractDict}
     if isa(generator[1], Tuple)
         control = generator[1][2]
-        G .= vals_dict[control] * generator[1][1]
+        axpy!(vals_dict[control], generator[1][1], G)
     else
-        G .= generator[1]
+        copyto!(G, generator[1])
     end
     for part in generator[2:end]
         if isa(part, Tuple)
             control = part[2]
-            G .+= vals_dict[control] * part[1]
+            axpy!(vals_dict[control], part[1], G)
         else
-            G .+= part
+            axpy!(true, part, G)
         end
     end
     return G

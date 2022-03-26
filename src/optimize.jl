@@ -57,7 +57,7 @@ function optimize_or_load(
     gitpath=DrWatson.projectdir(),
     storepatch::Bool=DrWatson.readenv("DRWATSON_STOREPATCH", false),
     force=false,
-    verbose=true,
+    verbose=false,
     wsave_kwargs=Dict(),
     savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
     metadata=nothing,
@@ -112,7 +112,7 @@ function optimize_or_load(
         wsave_kwargs=wsave_kwargs,
         savename_kwargs...
     ) do _
-        result = optimize(problem; method=method, kwargs...)
+        result = optimize(problem; method=method, verbose=verbose, kwargs...)
         data = Dict("result" => result)
         if !isnothing(_filter)
             data = _filter(data)
