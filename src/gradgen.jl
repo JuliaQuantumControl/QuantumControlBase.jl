@@ -371,6 +371,17 @@ end
 end
 
 
+function Base.Array(G::GradGenerator)
+    N, M = size(G.G)
+    L = length(G.control_derivs)
+    𝟘 = zeros(eltype(G.G), N, M)
+    μ = G.control_derivs
+    block_rows = [hcat([𝟘 for j = 1:i-1]..., G.G, [𝟘 for j = i+1:L]..., μ[i]) for i = 1:L]
+    last_block_row = hcat([𝟘 for j = 1:L]..., G.G)
+    return vcat(block_rows..., last_block_row)
+end
+
+
 function QuantumPropagators.propstep!(
     Ψ̃::GradVector{Vector{ComplexF64}},
     G̃::GradGenerator{Matrix{T},Matrix{T}},
