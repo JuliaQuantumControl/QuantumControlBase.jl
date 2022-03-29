@@ -1,6 +1,7 @@
 import LinearAlgebra
 import QuantumPropagators
 import Base: -, *
+import QuantumPropagators: has_real_eigvals
 
 @doc raw"""Extended generator for the standard dynamic gradient.
 
@@ -207,6 +208,12 @@ end
 
 
 LinearAlgebra.ishermitian(G::GradGenerator) = false
+
+
+# Upper triangular block matrices have eigenvalues only from the diagonal
+# blocks. This is an example for a matrix that has real eigenvalues despite not
+# being Hermitian
+has_real_eigvals(G::GradGenerator) = has_real_eigvals(G.G)
 
 
 function Base.isreal(G::GradGenerator)
