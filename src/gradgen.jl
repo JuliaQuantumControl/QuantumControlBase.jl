@@ -378,7 +378,7 @@ function Base.Array(G::GradGenerator)
     μ = G.control_derivs
     block_rows = [hcat([𝟘 for j = 1:i-1]..., G.G, [𝟘 for j = i+1:L]..., μ[i]) for i = 1:L]
     last_block_row = hcat([𝟘 for j = 1:L]..., G.G)
-    return vcat(block_rows..., last_block_row)
+    return Base.Array(vcat(block_rows..., last_block_row))
 end
 
 
