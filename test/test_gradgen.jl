@@ -280,17 +280,16 @@ end
     @test abs(H_E_min - G_E_min) < 1e-12
     @test abs(H_E_max - G_E_max) < 1e-12
 
-    @test norm(collect(specrange(G̃, method=:diag)) - [G_E_min, G_E_max]) < 1e-12
+    G_range_diag = collect(specrange(G̃, method=:diag))
+    @test eltype(G_range_diag) ≡ Float64
+    @test norm(G_range_diag - [G_E_min, G_E_max]) < 1e-12
 
-    @test norm(
-        collect(specrange(Ĥ, method=:diag)) - collect(specrange(G̃, method=:diag))
-    ) < 1e-12
+    H_range_diag = collect(specrange(Ĥ, method=:diag))
+    @test norm(H_range_diag - G_range_diag) < 1e-12
 
-    #! format: off
-    @test norm(
-        collect(specrange(G̃, method=:arnoldi, m_max=100)) - [H_E_min, H_E_max]
-    ) < 1e-2
-    #! format: on
+    G_range_arnoldi = collect(specrange(G̃, method=:arnoldi, m_max=100))
+    @test eltype(G_range_arnoldi) ≡ Float64
+    @test norm(G_range_arnoldi - [H_E_min, H_E_max]) < 1e-2
     # `specrange(Ĥ, method=:arnoldi)` isn't very exact, so we don't
     # compare against that.
 
@@ -335,12 +334,12 @@ end
     @test abs(H_E_min - G_E_min) < 1e-12
     @test abs(H_E_max - G_E_max) < 1e-12
 
-    @test norm(collect(specrange(G̃, method=:diag)) - [G_E_min, G_E_max]) < 1e-12
+    G_range_diag = collect(specrange(G̃, method=:diag))
+    @test eltype(G_range_diag) ≡ Float64
+    @test norm(G_range_diag - [G_E_min, G_E_max]) < 1e-12
 
-    #! format: off
-    @test norm(
-        collect(specrange(G̃, method=:arnoldi, m_max=100)) - [G_E_min, G_E_max]
-    ) < 1e-1
-    #! format: on
+    G_range_arnoldi = collect(specrange(G̃, method=:arnoldi, m_max=100))
+    @test eltype(G_range_arnoldi) ≡ Float64
+    @test norm(G_range_arnoldi - [G_E_min, G_E_max]) < 1e-1
 
 end
