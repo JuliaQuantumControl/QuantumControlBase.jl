@@ -1,4 +1,5 @@
 import Base
+import QuantumPropagators
 
 """Base class for a single optimization objective.
 
@@ -127,13 +128,15 @@ The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
 struct ControlProblem{OT<:AbstractControlObjective,OPT<:AbstractDict}
+    # TODO: give more details about where and how `kwargs` are used (e.g., for
+    # init_prop)
     objectives::Vector{OT}
     pulse_options::OPT # TODO: make this optional?
     tlist::Vector{Float64}
     kwargs::Dict{Symbol,Any}
     function ControlProblem(; objectives, pulse_options, tlist, kwargs...)
         kwargs_dict = Dict{Symbol,Any}(kwargs)  # make the kwargs mutable
-        new{typeof(objectives[1]),typeof(pulse_options)}(
+        new{eltype(objectives),typeof(pulse_options)}(
             objectives,
             pulse_options,
             tlist,
@@ -179,9 +182,8 @@ adjoint(objective)
 ```
 
 Adjoint of a control objective. The adjoint objective contains the adjoint of
-the dynamical generator `obj.generator`. It also contains the adjoints of all
-other fields (`initial_state`, etc.) if they are defined, or a copy of the
-original field value otherwise.
+the dynamical generator `obj.generator`. All other fields contain a copy of the
+original field value.
 
 The primary purpose of this adjoint is to facilitate the backward propagation
 under the adjoint generator that is central to gradient-based optimization
@@ -201,11 +203,6 @@ function Base.adjoint(obj::AbstractControlObjective)
             # methods depend on anything but the generator being the adjoint)
             adj_value = getproperty(obj, field)
             try
-                adj_value = Base.adjoint(adj_value)
-            catch
-                # if we can't do an adjoint, we'll keep the original value
-            end
-            try
                 adjoints[field] = copy(adj_value)
             catch
                 # `copy` isn't available e.g. for Strings
@@ -214,4 +211,33 @@ function Base.adjoint(obj::AbstractControlObjective)
         end
     end
     return typeof(obj).name.wrapper(; adjoints...)
+end
+
+
+"""
+```julia
+controls = getcontrols(objectives)
+```
+
+extracts the controls from a list of objectives (i.e., from each objective's
+`generator`). Controls that occur multiple times in the different objectives
+will occur only once in the result.
+"""
+function QuantumPropagators.Controls.getcontrols(
+    objectives::Vector{T}
+) where {T<:AbstractControlObjective}
+    controls = []
+    seen_control = IdDict{Any,Bool}()
+    for obj in objectives
+        obj_controls = QuantumPropagators.Controls.getcontrols(obj.generator)
+        for control in obj_controls
+            if haskey(seen_control, control)
+                # skip: already seen
+            else
+                push!(controls, control)
+                seen_control[control] = true
+            end
+        end
+    end
+    return Tuple(controls)
 end

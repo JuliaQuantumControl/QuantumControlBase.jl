@@ -8,8 +8,8 @@ using QuantumControlBase: AbstractControlObjective, WeightedObjective
     obj = dummy_control_problem().objectives[1]
     adj = adjoint(obj)
 
-    @test norm(adj.initial_state - obj.initial_state') ≈ 0
-    @test norm(adj.target_state - obj.target_state') ≈ 0
+    @test norm(adj.initial_state - obj.initial_state) ≈ 0
+    @test norm(adj.target_state - obj.target_state) ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]') ≈ 0
     @test norm(adj.generator[2][1] - obj.generator[2][1]') ≈ 0
     @test adj.generator[2][2] == obj.generator[2][2]
@@ -21,8 +21,8 @@ end
     obj = dummy_control_problem(sparsity=1.0).objectives[1]
     adj = adjoint(obj)
 
-    @test norm(adj.initial_state - obj.initial_state') ≈ 0
-    @test norm(adj.target_state - obj.target_state') ≈ 0
+    @test norm(adj.initial_state - obj.initial_state) ≈ 0
+    @test norm(adj.target_state - obj.target_state) ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]') ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]) ≈ 0
     @test norm(adj.generator[2][1] - obj.generator[2][1]') ≈ 0
@@ -35,8 +35,8 @@ end
     obj = dummy_control_problem(sparsity=1.0, hermitian=false).objectives[1]
     adj = adjoint(obj)
 
-    @test norm(adj.initial_state - obj.initial_state') ≈ 0
-    @test norm(adj.target_state - obj.target_state') ≈ 0
+    @test norm(adj.initial_state - obj.initial_state) ≈ 0
+    @test norm(adj.target_state - obj.target_state) ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]') ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]) > 0
     @test norm(adj.generator[2][1] - obj.generator[2][1]') ≈ 0
@@ -76,11 +76,11 @@ end
     obj = _CustomGateObjective(obj0.initial_state, obj0.generator, "CNOT", 0.5, 1im)
     adj = adjoint(obj)
 
-    @test norm(adj.initial_state - obj.initial_state') ≈ 0
+    @test norm(adj.initial_state - obj.initial_state) ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]') ≈ 0
     @test norm(adj.generator[1] - obj.generator[1]) > 0
     @test adj.gate == "CNOT"
     @test adj.weight == 0.5
-    @test adj.coeff == -1im
+    @test adj.coeff == 1im
 
 end

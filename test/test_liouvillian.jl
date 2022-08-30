@@ -31,7 +31,7 @@ using QuantumControlBase.TestUtils
     T = 1.0
     tlist = [0.0, T]
 
-    ρ⃗_out = propagate(ρ⃗₀, (tlist, i; kwargs...) -> ℒ, tlist; method=:expprop)
+    ρ⃗_out = propagate(ρ⃗₀, ℒ, tlist; method=:expprop)
     ρ_out = reshape(ρ⃗_out, 2, 2)
 
     #! format: off

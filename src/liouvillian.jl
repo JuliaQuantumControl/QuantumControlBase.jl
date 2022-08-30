@@ -98,7 +98,7 @@ If ``Ĥ`` is not time-dependent, the resulting `ℒ` will be a single-element
 tuple containing the Liouvillian as a sparse matrix, `ℒ = (ℒ₀, )`.
 
 With `convention=:TDSE`, the Liouvillian will be constructed for the equation
-of motion ``-i \hbar \frac{d}{dt} \vec{\rho}(t) = ℒ \vec{\rho}(t)`` to match
+of motion ``i \hbar \frac{d}{dt} \vec{\rho}(t) = ℒ \vec{\rho}(t)`` to match
 exactly the form of the time-dependent Schrödinger equation. While this
 notation is not standard in the literature of open quantum systems, it has the
 benefit that the resulting `ℒ` can be used in a numerical propagator for a

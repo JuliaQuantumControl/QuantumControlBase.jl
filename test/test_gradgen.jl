@@ -1,12 +1,13 @@
 using Test
 using LinearAlgebra
-using QuantumPropagators: initpropwrk, propstep!
+using QuantumPropagators: initprop, propstep!
 using QuantumPropagators.Newton
 using QuantumPropagators.SpectralRange: specrange
 using QuantumControlBase:
-    TimeDependentGradGenerator, GradGenerator, GradVector, resetgradvec!, evalcontrols
+    TimeDependentGradGenerator, GradGenerator, GradVector, resetgradvec!
 using QuantumControlBase.TestUtils
 using Zygote
+using QuantumPropagators.Controls: evalcontrols
 
 @testset "GradGenerator" begin
 
@@ -118,11 +119,16 @@ using Zygote
     ###########################################################################
     # Test standard expprop
 
-    wrk_exp = initpropwrk(Ψ̃, [0, dt], Val(:expprop), G̃)
-    propstep!(Ψ̃, G̃, dt, wrk_exp)
-    Ψ̃_out_exp = copy(Ψ̃)
-    @test norm(wrk_exp.Ψ_full - Ψ̃_full) ≈ 0.0
-    @test norm(wrk_exp.G_full - G̃_full) ≈ 0.0
+    propagator = initprop(
+        Ψ̃,
+        (G̃,),
+        [0, dt];
+        method=:expprop,
+        inplace=true,
+        convert_state=Vector{ComplexF64},
+        convert_operator=Matrix{ComplexF64}
+    )
+    Ψ̃_out_exp = propstep!(propagator)
     @test norm(Ψ̃_out_exp - Ψ̃_out) < 1e-11
     resetgradvec!(Ψ̃, Ψ)
 
