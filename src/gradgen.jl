@@ -394,4 +394,5 @@ end
 
 QuantumPropagators._exp_prop_convert_state(::GradVector) = Vector{ComplexF64}
 QuantumPropagators._exp_prop_convert_operator(::GradGenerator) = Matrix{ComplexF64}
-QuantumPropagators._exp_prop_convert_operator(::TimeDependentGradGenerator) = Matrix{ComplexF64}
+QuantumPropagators._exp_prop_convert_operator(::TimeDependentGradGenerator) =
+    Matrix{ComplexF64}
