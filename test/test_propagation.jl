@@ -39,7 +39,7 @@ using UnicodePlots
 
     tlist = collect(range(0, 5, length=500))
 
-    states = propagate_objective(obj, tlist, storage=true)
+    states = propagate(obj.initial_state, obj.generator, tlist, storage=true)
 
     pops = abs.(states) .^ 2
     pop0 = pops[1, :]

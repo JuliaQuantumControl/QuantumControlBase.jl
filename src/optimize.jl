@@ -57,7 +57,7 @@ function optimize_or_load(
     gitpath=DrWatson.projectdir(),
     storepatch::Bool=DrWatson.readenv("DRWATSON_STOREPATCH", false),
     force=false,
-    verbose=false,
+    verbose=get(problem.kwargs, :verbose, false),
     wsave_kwargs=Dict(),
     savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
     metadata=nothing,

@@ -8,11 +8,6 @@ export ControlProblem, Objective, MinimalObjective, WeightedObjective
 include("propagate.jl")
 export propagate_objective, propagate_objectives
 
-include("controls.jl")
-export discretize, discretize_on_midpoints
-export get_control_parameters, getcontrols
-export get_tlist_midpoints
-
 include("gradgen.jl")
 
 include("liouvillian.jl")

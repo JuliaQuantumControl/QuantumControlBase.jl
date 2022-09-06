@@ -1,7 +1,9 @@
 import LinearAlgebra
 import QuantumPropagators
 import Base: -, *
-import QuantumPropagators: has_real_eigvals
+
+using QuantumPropagators.Controls: getcontrols, getcontrolderivs
+
 
 @doc raw"""Extended generator for the standard dynamic gradient.
 
@@ -28,7 +30,7 @@ G̃ = \begin{pmatrix}
 
 Note that the ``∂G/∂ϵₗ(t)`` (``Ĥₗ`` in the above example) are functions, to
 account for the possibility of non-linear control terms, see
-[`getcontrolderiv`](@ref).
+[`getcontrolderiv`](@ref QuantumPropagators.Controls.getcontrolderiv).
 """
 struct TimeDependentGradGenerator{GT,CT}
     G::GT
@@ -51,31 +53,38 @@ G::GradGenerator = evalcontrols(G_of_t::TimeDependentGradGenerator, vals_dict)
 ```
 
 is the result of plugging in specific values for all controls in a
-[`TimeDependentGradGenerator`](@ref). See [`evalcontrols`](@ref) and
-[`evalcontrols!`](@ref).
+[`TimeDependentGradGenerator`](@ref). See [`evalcontrols`](@ref
+QuantumPropagators.Controls.evalcontrols) and [`evalcontrols!`](@ref
+QuantumPropagators.Controls.evalcontrols!).
 
 The resulting object can be multiplied directly with a [`GradVector`](@ref),
 e.g., in the process of evaluating a piecewise-constant time propagation.
 """
-struct GradGenerator{GT,CGT}
+struct GradGenerator{num_controls,GT,CGT}
     G::GT
     control_derivs::Vector{CGT}
 end
 
 function GradGenerator(G_of_t::TimeDependentGradGenerator)
     dummy_vals = IdDict(control => 1.0 for control in G_of_t.controls)
-    G = evalcontrols(G_of_t.G, dummy_vals)
+    G = QuantumPropagators.Controls.evalcontrols(G_of_t.G, dummy_vals)
     control_derivs = [μ(1.0) for μ in G_of_t.control_derivs]
-    GradGenerator{typeof(G),eltype(control_derivs)}(G, control_derivs)
+    num_controls = length(control_derivs)
+    GradGenerator{num_controls,typeof(G),eltype(control_derivs)}(G, control_derivs)
 end
 
 
-function evalcontrols!(
+function QuantumPropagators.Controls.getcontrols(G_of_t::TimeDependentGradGenerator)
+    return getcontrols(G_of_t.G)
+end
+
+
+function QuantumPropagators.Controls.evalcontrols!(
     G::GradGenerator,
     G_of_t::TimeDependentGradGenerator,
     vals_dict::AbstractDict
 )
-    evalcontrols!(G.G, G_of_t.G, vals_dict)
+    QuantumPropagators.Controls.evalcontrols!(G.G, G_of_t.G, vals_dict)
     for (i, control) in enumerate(G_of_t.controls)
         G.control_derivs[i] = G_of_t.control_derivs[i](vals_dict[control])
         # In most cases (for linear controls), the above line will be a no-op.
@@ -85,9 +94,12 @@ function evalcontrols!(
 end
 
 
-function evalcontrols(G_of_t::TimeDependentGradGenerator, vals_dict::AbstractDict)
+function QuantumPropagators.Controls.evalcontrols(
+    G_of_t::TimeDependentGradGenerator,
+    vals_dict::AbstractDict
+)
     G = GradGenerator(G_of_t)
-    evalcontrols!(G, G_of_t, vals_dict)
+    QuantumPropagators.Controls.evalcontrols!(G, G_of_t, vals_dict)
 end
 
 
@@ -125,7 +137,7 @@ e^{-i Ĥ dt} |Ψ⟩
 \end{pmatrix}.
 ```
 """
-struct GradVector{T}
+struct GradVector{num_controls,T}
     state::T
     grad_states::Vector{T}
 end
@@ -135,7 +147,7 @@ function GradVector(Ψ::T, num_controls::Int64) where {T}
     for i = 1:num_controls
         fill!(grad_states[i], 0.0)
     end
-    GradVector{T}(copy(Ψ), grad_states)
+    GradVector{num_controls,T}(copy(Ψ), grad_states)
 end
 
 
@@ -153,13 +165,13 @@ resetgradvec!(Ψ̃::GradVector, Ψ)
 
 additionally sets `Ψ̃.state` to `Ψ`.
 """
-function resetgradvec!(Ψ̃::GradVector{T}) where {T}
+function resetgradvec!(Ψ̃::GradVector)
     for i = 1:length(Ψ̃.grad_states)
         fill!(Ψ̃.grad_states[i], 0.0)
     end
 end
 
-function resetgradvec!(Ψ̃::GradVector{T}, Ψ::T) where {T}
+function resetgradvec!(Ψ̃::GradVector{num_controls,T}, Ψ::T) where {num_controls,T}
     copyto!(Ψ̃.state, Ψ)
     resetgradvec!(Ψ̃)
 end
@@ -176,14 +188,14 @@ end
 
 function LinearAlgebra.lmul!(c, Ψ::GradVector)
     LinearAlgebra.lmul!(c, Ψ.state)
-    for i = 1:length(Ψ.grad_states)
+    for i ∈ eachindex(Ψ.grad_states)
         LinearAlgebra.lmul!(c, Ψ.grad_states[i])
     end
 end
 
 function LinearAlgebra.axpy!(a, X::GradVector, Y::GradVector)
     LinearAlgebra.axpy!(a, X.state, Y.state)
-    for i = 1:length(X.grad_states)
+    for i ∈ eachindex(X.grad_states)
         LinearAlgebra.axpy!(a, X.grad_states[i], Y.grad_states[i])
     end
 end
@@ -191,7 +203,7 @@ end
 
 function LinearAlgebra.norm(Ψ::GradVector)
     nrm = LinearAlgebra.norm(Ψ.state)
-    for i = 1:length(Ψ.grad_states)
+    for i ∈ eachindex(Ψ.grad_states)
         nrm += LinearAlgebra.norm(Ψ.grad_states[i])
     end
     return nrm
@@ -200,7 +212,7 @@ end
 
 function LinearAlgebra.dot(Ψ::GradVector, Φ::GradVector)
     c::ComplexF64 = LinearAlgebra.dot(Ψ.state, Φ.state)
-    for i = 1:length(Ψ.grad_states)
+    for i ∈ eachindex(Ψ.grad_states)
         c += LinearAlgebra.dot(Ψ.grad_states[i], Φ.grad_states[i])
     end
     return c
@@ -213,7 +225,8 @@ LinearAlgebra.ishermitian(G::GradGenerator) = false
 # Upper triangular block matrices have eigenvalues only from the diagonal
 # blocks. This is an example for a matrix that has real eigenvalues despite not
 # being Hermitian
-has_real_eigvals(G::GradGenerator) = has_real_eigvals(G.G)
+QuantumPropagators.has_real_eigvals(G::GradGenerator) =
+    QuantumPropagators.has_real_eigvals(G.G)
 
 
 function Base.isreal(G::GradGenerator)
@@ -249,8 +262,18 @@ function Base.size(G::GradGenerator)
 end
 
 
-function Base.similar(Ψ::GradVector)
-    return GradVector(similar(Ψ.state), [similar(ϕ) for ϕ ∈ Ψ.grad_states])
+function Base.similar(Ψ::GradVector{num_controls,T}) where {num_controls,T}
+    return GradVector{num_controls,T}(similar(Ψ.state), [similar(ϕ) for ϕ ∈ Ψ.grad_states])
+end
+
+function Base.similar(G::GradGenerator{num_controls,GT,CGT}) where {num_controls,GT,CGT}
+    return GradGenerator{num_controls,GT,CGT}(similar(G.G), similar(G.control_derivs))
+end
+
+
+function Base.copyto!(dest::GradGenerator, src::GradGenerator)
+    copyto!(dest.G, src.G)
+    copyto!(dest.control_derivs, src.control_derivs)
 end
 
 
@@ -272,50 +295,21 @@ function -(Ψ::GradVector, Φ::GradVector)
 end
 
 
-function *(G::GradGenerator, α::Number)
-    GradGenerator{typeof(G.G),eltype(G.control_derivs)}(
-        G.G * α,
-        [CG * α for CG in G.control_derivs]
-    )
+function *(G::GradGenerator{num_controls,GT,CGT}, α::Number) where {num_controls,GT,CGT}
+    GradGenerator{num_controls,GT,CGT}(G.G * α, [CG * α for CG in G.control_derivs])
 end
 
 *(α::Number, G::GradGenerator) = *(G::GradGenerator, α::Number)
 
 
-struct DenseGradExpPropWrk{T}
-    Ψ_full::Vector{ComplexF64}
-    Φ_full::Vector{ComplexF64}
-    G_full::Matrix{T}
-    function DenseGradExpPropWrk(
-        Ψ̃::GradVector{Vector{ComplexF64}},
-        G̃::GradGenerator{Matrix{T},Matrix{T}}
-    ) where {T}
-        Ψ_full = convert_gradvec_to_dense(Ψ̃)
-        Φ_full = similar(Ψ_full)
-        G_full = convert_gradgen_to_dense(G̃)
-        new{T}(Ψ_full, Φ_full, G_full)
-    end
-end
-
-
-function QuantumPropagators.initpropwrk(
-    state::GradVector{Vector{ComplexF64}},
-    tlist,
-    method::Val{:expprop},
-    generator::Vararg{GradGenerator{Matrix{T},Matrix{T}}};
-    kwargs...
-) where {T}
-    return DenseGradExpPropWrk(state, generator[1])
-end
-
-
 function QuantumPropagators.SpectralRange.random_state(H::GradGenerator)
     state = QuantumPropagators.SpectralRange.random_state(H.G)
+    num_controls = length(H.control_derivs)
     grad_states = [
         QuantumPropagators.SpectralRange.random_state(H.G) for
-        i = 1:length(H.control_derivs)
+        i ∈ eachindex(H.control_derivs)
     ]
-    return GradVector{typeof(state)}(state, grad_states)
+    return GradVector{num_controls,typeof(state)}(state, grad_states)
 end
 
 
@@ -370,6 +364,19 @@ end
     return Ψ
 end
 
+function Base.convert(::Type{Vector{ComplexF64}}, gradvec::GradVector)
+    convert_gradvec_to_dense(gradvec)
+end
+
+function Base.convert(::Type{GradVector{num_controls,T}}, vec::T) where {num_controls,T}
+    L = num_controls
+    N = length(vec) ÷ (L + 1)  # dimension of state
+    @assert length(vec) == (L + 1) * N
+    grad_states = [vec[(i-1)*N+1:i*N] for i = 1:L]
+    state = vec[L*N+1:(L+1)*N]
+    return GradVector{num_controls,T}(state, grad_states)
+end
+
 
 function Base.Array(G::GradGenerator)
     N, M = size(G.G)
@@ -381,19 +388,10 @@ function Base.Array(G::GradGenerator)
     return Base.Array(vcat(block_rows..., last_block_row))
 end
 
-
-function QuantumPropagators.propstep!(
-    Ψ̃::GradVector{Vector{ComplexF64}},
-    G̃::GradGenerator{Matrix{T},Matrix{T}},
-    dt::Float64,
-    wrk::DenseGradExpPropWrk;
-    kwargs...
-) where {T}
-    func = get(kwargs, :func, H_dt -> exp(-1im * H_dt))
-    convert_gradgen_to_dense!(wrk.G_full, G̃)
-    convert_gradvec_to_dense!(wrk.Ψ_full, Ψ̃)
-    U = func(wrk.G_full * dt)
-    LinearAlgebra.mul!(wrk.Φ_full, U, wrk.Ψ_full)
-    convert_dense_to_gradvec!(Ψ̃, wrk.Φ_full)
-    return Ψ̃
+function Base.convert(::Type{MT}, G::GradGenerator) where {MT<:Matrix}
+    Base.convert(MT, Base.Array(G))
 end
+
+QuantumPropagators._exp_prop_convert_state(::GradVector) = Vector{ComplexF64}
+QuantumPropagators._exp_prop_convert_operator(::GradGenerator) = Matrix{ComplexF64}
+QuantumPropagators._exp_prop_convert_operator(::TimeDependentGradGenerator) = Matrix{ComplexF64}

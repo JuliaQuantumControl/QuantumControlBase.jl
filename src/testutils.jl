@@ -20,12 +20,10 @@ using SparseArrays
 using Coverage
 using LocalCoverage
 using Printf
+using QuantumPropagators.Controls: getcontrols, discretize, discretize_on_midpoints
 
 import ..Objective
 import ..ControlProblem
-import ..getcontrols
-import ..discretize
-import ..discretize_on_midpoints
 
 
 """Run a package test-suite in a subprocess.
