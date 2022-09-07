@@ -3,6 +3,7 @@ using Revise
 using JuliaFormatter
 using QuantumControlBase.TestUtils: test
 using LiveServer: LiveServer, serve, servedocs
+using Term
 include(joinpath(@__DIR__, "clean.jl"))
 
 
