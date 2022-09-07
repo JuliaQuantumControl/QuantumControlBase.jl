@@ -18,7 +18,7 @@ using Distributions
 using LinearAlgebra
 using SparseArrays
 using Coverage
-using LocalCoverage
+using LocalCoverage: eval_coverage_metrics
 using Printf
 using QuantumPropagators.Controls: getcontrols, discretize, discretize_on_midpoints
 
@@ -112,11 +112,13 @@ function test(
     if show_coverage || genhtml
         logger = Logging.SimpleLogger(Logging.Error)
         local coverage
+        package_dir = joinpath(root, "src")
         Logging.with_logger(logger) do
-            coverage = Coverage.process_folder(joinpath(root, "src"))
+            coverage = Coverage.process_folder(package_dir)
         end
         if show_coverage
-            coverage_summary(coverage)
+            metrics = eval_coverage_metrics(coverage, package_dir)
+            show(metrics)
         end
         (genhtml === true) && (genhtml = "genhtml")
         (genhtml === false) && (genhtml = "")
