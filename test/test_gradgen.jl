@@ -346,6 +346,6 @@ end
 
     G_range_arnoldi = collect(specrange(G̃, method=:arnoldi, m_max=100))
     @test eltype(G_range_arnoldi) ≡ Float64
-    @test norm(G_range_arnoldi - [G_E_min, G_E_max]) < 1e-1
+    @test norm(G_range_arnoldi - [G_E_min, G_E_max]) < 0.2
 
 end
