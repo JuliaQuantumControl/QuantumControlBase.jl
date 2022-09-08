@@ -61,7 +61,7 @@ Optionally, the table can be sorted by passing the name of a column to
 """
 function show_coverage(path::String=joinpath(pwd(), "src"); kwargs...)
     local coverage
-    logger = Logging.SimpleLogger(Logging.Error)
+    logger = Logging.SimpleLogger(stderr, Logging.Error)
     Logging.with_logger(logger) do
         coverage = Coverage.process_folder(path)
     end
@@ -128,7 +128,7 @@ HTML coverage report into that folder.
 """
 function generate_coverage_html(path::String=pwd(); kwargs...)
     local coverage
-    logger = Logging.SimpleLogger(Logging.Error)
+    logger = Logging.SimpleLogger(stderr, Logging.Error)
     Logging.with_logger(logger) do
         coverage = Coverage.process_folder(path)
     end
@@ -246,7 +246,7 @@ function test(
     @info "Running '$(join(cmd, " "))' in subprocess"
     run(Cmd(Cmd(cmd), dir=root))
     if show_coverage || genhtml
-        logger = Logging.SimpleLogger(Logging.Error)
+        logger = Logging.SimpleLogger(stderr, Logging.Error)
         local coverage
         package_dir = joinpath(root, "src")
         Logging.with_logger(logger) do
