@@ -101,7 +101,6 @@ end
 ```julia
 ControlProblem(
    objectives=<list of objectives>,
-   pulse_options=<dict of controls to pulse options>,
    tlist=<time grid>,
    kwargs...
 )
@@ -114,9 +113,6 @@ each defining an initial state and a dynamical generator for the evolution of
 that state. Usually, the objective will also include a target state (see
 [`Objective`](@ref)) and possibly a weight (see [`WeightedObjective`](@ref)).
 
-The `pulse_options` are a dictionary (`IdDict`) mapping controls that occur in
-the `objectives` to properties specific to the control method.
-
 The `tlist` is the time grid on which the time evolution of the initial states
 of each objective should be propagated.
 
@@ -127,21 +123,13 @@ functional.
 The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
-struct ControlProblem{OT<:AbstractControlObjective,OPT<:AbstractDict}
-    # TODO: give more details about where and how `kwargs` are used (e.g., for
-    # init_prop)
+struct ControlProblem{OT<:AbstractControlObjective}
     objectives::Vector{OT}
-    pulse_options::OPT # TODO: make this optional?
     tlist::Vector{Float64}
     kwargs::Dict{Symbol,Any}
-    function ControlProblem(; objectives, pulse_options, tlist, kwargs...)
+    function ControlProblem(; objectives, tlist, kwargs...)
         kwargs_dict = Dict{Symbol,Any}(kwargs)  # make the kwargs mutable
-        new{eltype(objectives),typeof(pulse_options)}(
-            objectives,
-            pulse_options,
-            tlist,
-            kwargs_dict
-        )
+        new{eltype(objectives)}(objectives, tlist, kwargs_dict)
     end
 end
 
@@ -149,7 +137,6 @@ end
 function Base.copy(problem::ControlProblem)
     return ControlProblem(
         objectives=problem.objectives,
-        pulse_options=problem.pulse_options,
         tlist=problem.tlist;
         problem.kwargs...
     )
