@@ -1,7 +1,7 @@
 # init file for "make devrepl"
 using Revise
 using JuliaFormatter
-using QuantumControlBase.TestUtils: test
+using QuantumControlBase.TestUtils: test, show_coverage, generate_coverage_html
 using LiveServer: LiveServer, serve, servedocs
 using Term
 include(joinpath(@__DIR__, "clean.jl"))
@@ -16,7 +16,8 @@ Revise, JuliaFormatter, LiveServer are active.
 * `help()` – Show this message
 * `include("test/runtests.jl")` – Run the entire test suite
 * `test()` – Run the entire test suite in a subprocess with coverage
-* `test(genhtml=true)` – Generate an HTML coverage report
+* `show_coverage()` – Print a tabular overview of coverage data
+* `generate_coverage_html()` – Generate an HTML coverage report
 * `Pkg.test("Krotov", coverage=true)` –
   Run upstream Krotov tests for additional coverage
 * `include("docs/make.jl")` – Generate the documentation

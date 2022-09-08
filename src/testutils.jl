@@ -11,6 +11,7 @@ export random_complex_matrix,
     random_hermitian_sparse_real_matrix
 export dummy_control_problem
 export test
+export show_coverage, generate_coverage_html
 
 using Logging
 using Random
@@ -18,12 +19,148 @@ using Distributions
 using LinearAlgebra
 using SparseArrays
 using Coverage
-using LocalCoverage: eval_coverage_metrics
+using PrettyTables
+using LocalCoverage:
+    LocalCoverage,
+    eval_coverage_metrics,
+    PackageCoverage,
+    FileCoverageSummary,
+    CoverageTools
 using Printf
 using QuantumPropagators.Controls: getcontrols, discretize, discretize_on_midpoints
 
 import ..Objective
 import ..ControlProblem
+
+
+function format_line(metric::Union{PackageCoverage,FileCoverageSummary})
+    name = (metric isa PackageCoverage ? "TOTAL" : relpath(metric.filename))
+    lines_hit = @sprintf("%3d", metric.lines_hit)
+    lines_tracked = @sprintf("%3d", metric.lines_tracked)
+    lines_missing = @sprintf("%3d", metric.lines_tracked - metric.lines_hit)
+    coverage = (isnan(metric.coverage) ? "-" : @sprintf("%3.0f%%", metric.coverage))
+    return hcat(name, lines_tracked, lines_hit, lines_missing, coverage)
+end
+
+
+"""Print out a coverage summary from existing coverage data.
+
+```julia
+show_coverage(path="./src"; sort_by=nothing)
+```
+
+prints a a table showing the tracked files in `path`, the total number of
+tracked lines in that file ("Total"), the number of lines with coverage
+("Hit"), the number of lines without coverage ("Missed") and the "Coverage" as
+a percentage.
+
+The coverage data is collected from `.cov` files in `path`.
+
+Optionally, the table can be sorted by passing the name of a column to
+`sort_by`, e..g. `sort_py=:Missed`.
+"""
+function show_coverage(path::String=joinpath(pwd(), "src"); kwargs...)
+    local coverage
+    logger = Logging.SimpleLogger(Logging.Error)
+    Logging.with_logger(logger) do
+        coverage = Coverage.process_folder(path)
+    end
+    metrics = eval_coverage_metrics(coverage, path)
+    show_coverage(metrics; kwargs...)
+end
+
+function show_coverage(metrics::PackageCoverage; sort_by=nothing)
+
+    file_metrics = metrics.files
+    sorter = Dict(
+        :Total => (m -> m.lines_tracked),
+        :Hit => (m -> m.lines_hit),
+        :Missed => (m -> (m.lines_tracked - m.lines_hit)),
+        :Coverage => (m -> m.coverage),
+    )
+    if !isnothing(sort_by)
+        if sort_by ∈ keys(sorter)
+            sort!(file_metrics; by=sorter[sort_by])
+        else
+            error("Cannot sort by $sort_by, must be one of $(keys(sorter))")
+        end
+    end
+
+    table = reduce(vcat, map(format_line, [file_metrics..., metrics]))
+
+    row_coverage = [getfield.(file_metrics, :coverage)... metrics.coverage]
+
+    highlighters = (
+        Highlighter(
+            (data, i, j) -> j == 5 && row_coverage[i] <= 50,
+            bold=true,
+            foreground=:red,
+        ),
+        Highlighter((data, i, j) -> j == 5 && row_coverage[i] >= 90, foreground=:green),
+    )
+
+    table_str = pretty_table(
+        table,
+        header=["File name", "Total", "Hit", "Missed", "Coverage"],
+        alignment=[:l, :r, :r, :r, :r],
+        crop=:none,
+        linebreaks=true,
+        columns_width=[min(30, maximum(length.(table[:, 1]))), 6, 6, 6, 8],
+        autowrap=false,
+        highlighters=highlighters,
+        body_hlines=[size(table, 1) - 1],
+    )
+    println(table_str)
+
+end
+
+_show_coverage_func = show_coverage
+
+
+"""Generate an HTML report for existing coverage data.
+
+```julia
+generate_coverage_html(path="./"; covdir="coverage", genhtml="genhtml")
+```
+
+creates a folder `covdir` and use the external `genhtml` program to write an
+HTML coverage report into that folder.
+"""
+function generate_coverage_html(path::String=pwd(); kwargs...)
+    local coverage
+    logger = Logging.SimpleLogger(Logging.Error)
+    Logging.with_logger(logger) do
+        coverage = Coverage.process_folder(path)
+    end
+    generate_coverage_html(path, coverage; kwargs...)
+end
+
+function generate_coverage_html(
+    path::String,
+    coverage::Vector{LocalCoverage.CoverageTools.FileCoverage};
+    covdir="coverage",
+    genhtml="genhtml"
+)
+    covdir = joinpath(path, covdir)
+    tracefile = joinpath(path, "lcov.info")
+    LocalCoverage.CoverageTools.LCOV.writefile(tracefile, coverage)
+    branch = try
+        strip(read(`git rev-parse --abbrev-ref HEAD`, String))
+    catch e
+        @warn "git branch could not be detected.\nError message: $(sprint(Base.showerror, e))"
+    end
+    title = isnothing(branch) ? "N/A" : "on branch $(branch)"
+    try
+        run(`$(genhtml) -t $(title) -o $(covdir) $(tracefile)`)
+    catch e
+        @error(
+            "Failed to run $(genhtml). Check that lcov is installed.\nError message: $(sprint(Base.showerror, e))"
+        )
+    end
+    @info(
+        "Generated coverage HTML. Serve with 'LiveServer.serve(dir=\"$(relpath(covdir, pwd()))\")'"
+    )
+end
 
 
 """Run a package test-suite in a subprocess.
@@ -108,7 +245,6 @@ function test(
     ]
     @info "Running '$(join(cmd, " "))' in subprocess"
     run(Cmd(Cmd(cmd), dir=root))
-    tracefile = joinpath(root, "lcov.info")
     if show_coverage || genhtml
         logger = Logging.SimpleLogger(Logging.Error)
         local coverage
@@ -118,29 +254,12 @@ function test(
         end
         if show_coverage
             metrics = eval_coverage_metrics(coverage, package_dir)
-            show(metrics)
+            _show_coverage_func(metrics)
         end
         (genhtml === true) && (genhtml = "genhtml")
         (genhtml === false) && (genhtml = "")
         if !isempty(genhtml)
-            covdir = joinpath(root, covdir)
-            LocalCoverage.CoverageTools.LCOV.writefile(tracefile, coverage)
-            branch = try
-                strip(read(`git rev-parse --abbrev-ref HEAD`, String))
-            catch e
-                @warn "git branch could not be detected.\nError message: $(sprint(Base.showerror, e))"
-            end
-            title = isnothing(branch) ? "N/A" : "on branch $(branch)"
-            try
-                run(`$(genhtml) -t $(title) -o $(covdir) $(tracefile)`)
-            catch e
-                @error(
-                    "Failed to run $(genhtml). Check that lcov is installed.\nError message: $(sprint(Base.showerror, e))"
-                )
-            end
-            @info(
-                "Generated coverage HTML. Serve with 'LiveServer.serve(dir=\"$(relpath(covdir, pwd()))\")'"
-            )
+            generate_html_coverage(root; covdir, genhtml)
         end
     end
 end
