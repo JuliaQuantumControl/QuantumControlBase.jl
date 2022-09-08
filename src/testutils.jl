@@ -19,7 +19,7 @@ using Distributions
 using LinearAlgebra
 using SparseArrays
 using Coverage
-using PrettyTables
+using LocalCoverage.PrettyTables
 using LocalCoverage:
     LocalCoverage,
     eval_coverage_metrics,
