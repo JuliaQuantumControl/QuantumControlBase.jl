@@ -1,6 +1,6 @@
 using Test
 using LinearAlgebra
-using QuantumControlBase: MinimalObjective
+using QuantumControlBase: Objective
 using QuantumControlBase.Functionals
 using QuantumControlBase.WeylChamber
 using QuantumControlBase.TestUtils
@@ -238,7 +238,7 @@ end
     Ψ4 = random_state_vector(4)
 
     objectives = [
-        MinimalObjective(
+        Objective(
             initial_state=ket(lbl; N=2),
             generator=random_hermitian_real_matrix(4, 1.0)
         ) for lbl in ("00", "01", "10", "11")
@@ -295,7 +295,7 @@ end
     basis = [ket(lbl; N=2) for lbl in ("00", "01", "10", "11")]
     H = random_hermitian_real_matrix(4, 1.0)
 
-    objectives = [MinimalObjective(initial_state=Ψ, generator=H) for Ψ in basis]
+    objectives = [Objective(initial_state=Ψ, generator=H) for Ψ in basis]
 
     c1, c2, c3 = rand(3) .* [1, 0.5, 0.5]
     while !in_weyl_chamber(c1, c2, c3; region)

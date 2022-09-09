@@ -3,7 +3,7 @@ module QuantumControlBase
 include("conditionalthreads.jl")   # submodule ConditionalThreads
 
 include("objectives.jl")
-export ControlProblem, Objective, MinimalObjective, WeightedObjective
+export ControlProblem, Objective
 
 include("propagate.jl")
 export propagate_objective, propagate_objectives

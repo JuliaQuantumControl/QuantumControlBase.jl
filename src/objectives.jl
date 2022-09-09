@@ -1,114 +1,108 @@
 import Base
 import QuantumPropagators
 
-"""Base class for a single optimization objective.
-
-All objectives must have a field `initial_state` and a field `generator`, at
-minimum. Also, objectives must be able to be instantiated via keyword
-arguments.
-"""
-abstract type AbstractControlObjective end
-
-
-"""Standard optimization objective.
+# TODO: consider using kwargs for initprop, and document that feature.
+"""Optimization objective.
 
 ```julia
 Objective(;
-    initial_state=<initial_state>,
-    generator=<generator>,
-    target_state=<target_state>
+    initial_state,
+    generator,
+    target_state=nothing,
+    weight=1.0,
+    kwargs...
 )
 ```
 
-describes an optimization objective where the time evaluation of the given
-`initial_state` under the given `generator` aims towards `target_state`. The
-`generator` here is e.g. a time-dependent Hamiltonian or Liouvillian.
+describes an optimization objective that is tracked by the time evolution of
+the given `initial_state` under the given `generator`, e.g., a time-dependent
+Hamiltonian or Liouvillian. Each objective represents a single propagated state
+on which an optimization functional may depend.
 
-The most common control problems in quantum control, e.g. state-to-state
-transitions or quantum gate implementations can be expressed by simultaneously
-fulfilling multiple objectives of this type.
+The most common control problems in quantum control (state-to-state, gate
+optimization) require that the `initial_state` evolves into a `target_state`,
+which should be given as a keyword argument.
 
-Note that the objective can only be instantiated via keyword arguments.
+An optimization functional usually depends on *multiple* forward-propagated
+states (i.e., multiple `objectives`). Sometimes, it is useful to weight the
+contributions of different `objectives` relative to each other, see, e.g.,
+Goerz *et al*., New J. Phys. 16, 055012 (2014). To this end, a `weight` can be
+attached to each `Objective` as an optional keyword argument.
+
+Any other keyword arguments are available to a custom functional as properties
+of the `Objective` .
+
+Note that the `Objective` can only be instantiated via keyword arguments, with
+`initial_state` and `generator` being the only two mandatory keyword arguments.
 """
-struct Objective{ST,GT} <: AbstractControlObjective
+struct Objective{ST,GT}
     initial_state::ST
     generator::GT
-    target_state::ST
-    function Objective(; initial_state::ST, generator::GT, target_state::ST) where {ST,GT}
-        new{ST,GT}(initial_state, generator, target_state)
-    end
-end
-
-
-"""Minmal optimization objective (initial state and dynamical generator only).
-
-```julia
-Objective(;
-    initial_state=<initial_state>,
-    generator=<generator>,
-)
-```
-
-describes and optimization objective like the standard [`Objective`](@ref),
-except for functionals that are not expressed with respect to some
-`target_state`. Having only an `initial_state` and a `generator`, this is the
-minimal data structure that is a valid instance of
-[`AbstractControlObjective`](@ref).
-"""
-struct MinimalObjective{ST,GT} <: AbstractControlObjective
-    initial_state::ST
-    generator::GT
-    function MinimalObjective(; initial_state::ST, generator::GT) where {ST,GT}
-        new{ST,GT}(initial_state, generator)
-    end
-end
-
-
-"""Standard optimization objective with a weight.
-
-```julia
-WeightedObjective(;
-    initial_state=<initial_state>,
-    generator=<genenerator>,
-    target_state=<target_state>,
-    weight=<weight>
-)
-```
-
-initializes a control objective like [`Objective`](@ref), but with an
-additional `weight` parameter (a float generally between 0 and 1) that weights
-the objective relative to other objectives that are part of the same control
-problem.
-"""
-struct WeightedObjective{ST,GT} <: AbstractControlObjective
-    initial_state::ST
-    generator::GT
-    target_state::ST
+    target_state::Union{Nothing,ST}
     weight::Float64
-    function WeightedObjective(;
+    kwargs::Dict{Symbol,Any}
+
+    function Objective(;
         initial_state::ST,
         generator::GT,
-        target_state::ST,
-        weight::Float64
+        target_state::Union{Nothing,ST}=nothing,
+        weight=1.0,
+        kwargs...
     ) where {ST,GT}
-        new{ST,GT}(initial_state, generator, target_state, weight)
+        new{ST,GT}(initial_state, generator, target_state, weight, kwargs)
+    end
+
+end
+
+
+function Base.propertynames(obj::Objective, private::Bool=false)
+    return (
+        :initial_state,
+        :generator,
+        :target_state,
+        :weight,
+        keys(getfield(obj, :kwargs))...
+    )
+end
+
+
+function Base.setproperty!(obj::Objective, name::Symbol, value)
+    error("setproperty!: immutable struct of type Objective cannot be changed")
+end
+
+
+function Base.getproperty(obj::Objective, name::Symbol)
+    if name ≡ :initial_state
+        return getfield(obj, :initial_state)
+    elseif name ≡ :generator
+        return getfield(obj, :generator)
+    elseif name ≡ :target_state
+        return getfield(obj, :target_state)
+    elseif name ≡ :weight
+        return getfield(obj, :weight)
+    else
+        kwargs = getfield(obj, :kwargs)
+        return get(kwargs, name) do
+            error("type Objective has no property $name")
+        end
     end
 end
+
 
 
 """A full control problem with multiple objectives.
 
 ```julia
-ControlProblem(
-   objectives=<list of objectives>,
-   tlist=<time grid>,
+ControlProblem(;
+   objectives,
+   tlist,
    kwargs...
 )
 ```
 
 Note that the control problem can only be instantiated via keyword arguments.
 
-The `objectives` are a list of [`AbstractControlObjective`](@ref) instances,
+The `objectives` are a list of [`Objective`](@ref) instances,
 each defining an initial state and a dynamical generator for the evolution of
 that state. Usually, the objective will also include a target state (see
 [`Objective`](@ref)) and possibly a weight (see [`WeightedObjective`](@ref)).
@@ -123,13 +117,13 @@ functional.
 The control problem is solved by finding a set of controls that simultaneously
 fulfill all objectives.
 """
-struct ControlProblem{OT<:AbstractControlObjective}
-    objectives::Vector{OT}
+struct ControlProblem
+    objectives::Vector{Objective}
     tlist::Vector{Float64}
     kwargs::Dict{Symbol,Any}
     function ControlProblem(; objectives, tlist, kwargs...)
         kwargs_dict = Dict{Symbol,Any}(kwargs)  # make the kwargs mutable
-        new{eltype(objectives)}(objectives, tlist, kwargs_dict)
+        new(objectives, tlist, kwargs_dict)
     end
 end
 
@@ -176,28 +170,13 @@ The primary purpose of this adjoint is to facilitate the backward propagation
 under the adjoint generator that is central to gradient-based optimization
 methods such as GRAPE and Krotov's method.
 """
-function Base.adjoint(obj::AbstractControlObjective)
-    fields = propertynames(obj)
-    adjoints = Dict{Symbol,Any}()  # field => adjoint value
-    for field ∈ fields
-        if field == :generator
-            # For the generator, the adjoint *must* be defined. GRAPE and
-            # Krotov critically depend on this for the backward prop
-            adjoints[field] = dynamical_generator_adjoint(obj.generator)
-        else
-            # Any other field, it doesn't really matter too much whether
-            # we take the adjoint or not (none of the normal optimization
-            # methods depend on anything but the generator being the adjoint)
-            adj_value = getproperty(obj, field)
-            try
-                adjoints[field] = copy(adj_value)
-            catch
-                # `copy` isn't available e.g. for Strings
-                adjoints[field] = adj_value
-            end
-        end
-    end
-    return typeof(obj).name.wrapper(; adjoints...)
+function Base.adjoint(obj::Objective)
+    initial_state = obj.initial_state
+    generator = dynamical_generator_adjoint(obj.generator)
+    target_state = obj.target_state
+    weight = obj.weight
+    kwargs = getfield(obj, :kwargs)
+    Objective(; initial_state, generator, target_state, weight, kwargs...)
 end
 
 
@@ -210,17 +189,13 @@ extracts the controls from a list of objectives (i.e., from each objective's
 `generator`). Controls that occur multiple times in the different objectives
 will occur only once in the result.
 """
-function QuantumPropagators.Controls.getcontrols(
-    objectives::Vector{T}
-) where {T<:AbstractControlObjective}
+function QuantumPropagators.Controls.getcontrols(objectives::Vector{<:Objective})
     controls = []
     seen_control = IdDict{Any,Bool}()
     for obj in objectives
         obj_controls = QuantumPropagators.Controls.getcontrols(obj.generator)
         for control in obj_controls
-            if haskey(seen_control, control)
-                # skip: already seen
-            else
+            if !haskey(seen_control, control)
                 push!(controls, control)
                 seen_control[control] = true
             end

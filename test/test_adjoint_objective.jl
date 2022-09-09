@@ -1,7 +1,7 @@
 using Test
 using LinearAlgebra
 using QuantumControlBase.TestUtils
-using QuantumControlBase: AbstractControlObjective, WeightedObjective
+using QuantumControlBase: Objective
 
 @testset "Sparse objective adjoint" begin
 
@@ -49,7 +49,7 @@ end
 @testset "weighted objective adjoint" begin
 
     obj0 = dummy_control_problem().objectives[1]
-    obj = WeightedObjective(
+    obj = Objective(
         initial_state=obj0.initial_state,
         generator=obj0.generator,
         target_state=obj0.target_state,
@@ -65,15 +65,22 @@ end
 
     obj0 = dummy_control_problem(hermitian=false).objectives[1]
 
-    Base.@kwdef struct _CustomGateObjective <: AbstractControlObjective
-        initial_state
-        generator
-        gate
-        weight
-        coeff
-    end
+    obj = Objective(
+        initial_state=obj0.initial_state,
+        generator=obj0.generator,
+        gate="CNOT",
+        weight=0.5,
+        coeff=1im
+    )
 
-    obj = _CustomGateObjective(obj0.initial_state, obj0.generator, "CNOT", 0.5, 1im)
+    @test propertynames(obj) ==
+          (:initial_state, :generator, :target_state, :weight, :coeff, :gate)
+    kwargs = getfield(obj, :kwargs)
+    @test :coeff ∈ keys(kwargs)
+    @test isnothing(obj.target_state)
+    @test obj.gate == "CNOT"
+    @test obj.coeff == 1im
+
     adj = adjoint(obj)
 
     @test norm(adj.initial_state - obj.initial_state) ≈ 0

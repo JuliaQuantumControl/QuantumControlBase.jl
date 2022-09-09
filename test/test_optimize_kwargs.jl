@@ -13,11 +13,6 @@ import QuantumControlBase: optimize
         flag::Bool
     end
 
-    struct DummyObjective <: QuantumControlBase.AbstractControlObjective
-        initial_state
-        generator
-    end
-
     function optimize_kwargstest(problem)
         return Result(problem.kwargs[:iter_stop], problem.kwargs[:flag])
     end
@@ -26,7 +21,7 @@ import QuantumControlBase: optimize
         optimize_kwargstest(problem)
 
     problem = ControlProblem(
-        objectives=[DummyObjective(nothing, nothing)],
+        objectives=[Objective(initial_state=nothing, generator=nothing)],
         pulse_options=Dict(),
         tlist=[0.0, 10.0],
         iter_stop=2,

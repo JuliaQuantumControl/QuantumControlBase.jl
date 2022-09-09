@@ -4,8 +4,6 @@ export J_T_ss, J_T_sm, J_T_re
 export gate_functional, make_gate_chi
 export make_gradient, make_chi
 
-import ..WeightedObjective
-
 
 using LinearAlgebra
 using Zygote: Zygote
@@ -43,10 +41,8 @@ target states from the `target_state` field of the `objectives`. If `τ` is
 given as a keyword argument, it must contain the values `τ_k` according to the
 above definition. Otherwise, the ``τ_k`` values will be calculated internally.
 
-``N`` is the number of objectives, and ``w_k`` is an optional weight for each
-objective. For any objective that has a `weight` attribute (cf.
-[`WeightedObjective`](@ref)), the ``w_k`` is taken from that attribute;
-otherwise, ``w_k = 1``. The weights, if present, are not automatically
+``N`` is the number of objectives, and ``w_k`` is the `weight` attribute for
+each objective. The weights are not automatically
 normalized, they are assumed to have values such that the resulting ``f_τ``
 lies in the unit circle of the complex plane. Usually, this means that the
 weights should sum to ``N``.
@@ -59,7 +55,7 @@ function f_tau(ϕ, objectives; τ=nothing)
     f::ComplexF64 = 0
     for k = 1:N
         obj = objectives[k]
-        w = isa(obj, WeightedObjective) ? obj.weight : 1.0
+        w = obj.weight
         f += w * τ[k]
     end
     return f / N
@@ -136,7 +132,7 @@ function chi_ss!(χ, ϕ, objectives; τ=nothing)
         obj = objectives[k]
         ϕₖ_tgt = obj.target_state
         copyto!(χ[k], ϕₖ_tgt)
-        w = isa(obj, WeightedObjective) ? obj.weight : 1.0
+        w = obj.weight
         lmul!((τ[k] * w) / N, χ[k])
     end
 end
@@ -246,7 +242,7 @@ function chi_sm!(χ, ϕ, objectives; τ=nothing)
     w = ones(N)
     for k = 1:N
         obj = objectives[k]
-        w[k] = isa(obj, WeightedObjective) ? obj.weight : 1.0
+        w[k] = obj.weight
     end
 
     for k = 1:N
@@ -332,7 +328,7 @@ function chi_re!(χ, ϕ, objectives; τ=nothing)
         obj = objectives[k]
         ϕₖ_tgt = obj.target_state
         copyto!(χ[k], ϕₖ_tgt)
-        w = isa(obj, WeightedObjective) ? obj.weight : 1.0
+        w = obj.weight
         lmul!(w / (2N), χ[k])
     end
 end
