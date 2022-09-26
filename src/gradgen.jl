@@ -65,10 +65,13 @@ struct GradGenerator{num_controls,GT,CGT}
     control_derivs::Vector{CGT}
 end
 
+# Dummy initializer: this creates a GradGenerator that fits a
+# TimeDependentGradGenerator structurally
 function GradGenerator(G_of_t::TimeDependentGradGenerator)
     dummy_vals = IdDict(control => 1.0 for control in G_of_t.controls)
-    G = QuantumPropagators.Controls.evalcontrols(G_of_t.G, dummy_vals)
-    control_derivs = [μ(1.0) for μ in G_of_t.control_derivs]
+    dummy_tlist = [0.0, 1.0]
+    G = QuantumPropagators.Controls.evalcontrols(G_of_t.G, dummy_vals, dummy_tlist, 1)
+    control_derivs = [μ(1.0, dummy_tlist, 1) for μ in G_of_t.control_derivs]
     num_controls = length(control_derivs)
     GradGenerator{num_controls,typeof(G),eltype(control_derivs)}(G, control_derivs)
 end
@@ -82,11 +85,13 @@ end
 function QuantumPropagators.Controls.evalcontrols!(
     G::GradGenerator,
     G_of_t::TimeDependentGradGenerator,
-    vals_dict::AbstractDict
+    vals_dict::AbstractDict,
+    args...
 )
-    QuantumPropagators.Controls.evalcontrols!(G.G, G_of_t.G, vals_dict)
+    QuantumPropagators.Controls.evalcontrols!(G.G, G_of_t.G, vals_dict, args...)
     for (i, control) in enumerate(G_of_t.controls)
-        G.control_derivs[i] = G_of_t.control_derivs[i](vals_dict[control])
+        μ = G_of_t.control_derivs[i]
+        G.control_derivs[i] = μ(vals_dict[control], args...)
         # In most cases (for linear controls), the above line will be a no-op.
         # Hence, we're not using `copyto!`.
     end
@@ -96,10 +101,11 @@ end
 
 function QuantumPropagators.Controls.evalcontrols(
     G_of_t::TimeDependentGradGenerator,
-    vals_dict::AbstractDict
+    vals_dict::AbstractDict,
+    args...
 )
     G = GradGenerator(G_of_t)
-    QuantumPropagators.Controls.evalcontrols!(G, G_of_t, vals_dict)
+    QuantumPropagators.Controls.evalcontrols!(G, G_of_t, vals_dict, args...)
 end
 
 
