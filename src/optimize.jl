@@ -28,66 +28,30 @@ optimize(problem::ControlProblem, method::Symbol) = optimize(problem, Val(method
 
 import DrWatson
 
-const _SAVENAME_AVAILABLE_KEYS = Set([
-    :accesses,
-    :allowedtypes,
-    :connector,
-    :digits,
-    :equals,
-    :expand,
-    :ignores,
-    :sigdigits,
-    :sort,
-    :val_to_string,
-])
-const DEFAULT_OPTIMIZATION_SAVENAME_KWARGS = Dict{Symbol,Any}()
-
-
 # See @optimize_or_load for documentation –
 # Only the macro version should be public!
 function optimize_or_load(
     _filter,
-    path,
+    file,
     problem;
     method,
-    filename::Union{Nothing,AbstractString}=nothing,
-    suffix=((isnothing(filename) ? "jld2" : replace(splitext(filename)[2], "." => ""))),
-    prefix="",
+    suffix="jld2",
     tag::Bool=DrWatson.readenv("DRWATSON_TAG", DrWatson.istaggable(suffix)),
     gitpath=DrWatson.projectdir(),
     storepatch::Bool=DrWatson.readenv("DRWATSON_STOREPATCH", false),
     force=false,
     verbose=get(problem.kwargs, :verbose, false),
     wsave_kwargs=Dict(),
-    savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
     metadata=nothing,
-    dry_run=false,
     kwargs...
 )
 
     # _filter is only for attaching metadata to the result
 
-    if isnothing(filename)
-        filename = optimization_savename(
-            problem;
-            method=method,
-            suffix=suffix,
-            prefix=prefix,
-            savename_kwargs=savename_kwargs,
-            kwargs...
-        )
-    end
-
-    file = joinpath(path, filename)
-    if dry_run
-        if verbose
-            if isfile(file) && !force
-                @info "Would load result from $file"
-            else
-                @info "Would optimize and store in $file"
-            end
-        end
-        return nothing, file
+    (suffix |> startswith(".")) && (suffix = suffix[2:end])
+    if ".$suffix" ≠ splitext(file)[2]
+        @warn "$file suffix is not $suffix. Appending file extension"
+        file = "$file.$suffix"
     end
     if isfile(file) && verbose
         if force
@@ -98,19 +62,17 @@ function optimize_or_load(
     end
 
     data, file = DrWatson.produce_or_load(
-        path,
+        "",
         Dict();
-        filename=filename,
+        filename=file,
         suffix=suffix,
-        prefix=prefix,
         tag=tag,
         gitpath=gitpath,
         loadfile=true,
         storepatch=storepatch,
         force=force,
         verbose=verbose,
-        wsave_kwargs=wsave_kwargs,
-        savename_kwargs...
+        wsave_kwargs=wsave_kwargs
     ) do _
         result = optimize(problem; method=method, verbose=verbose, kwargs...)
         data = Dict("result" => result)
@@ -121,57 +83,90 @@ function optimize_or_load(
         return data
     end
 
-    return data["result"], file
+    return data["result"]
 
 end
 
-optimize_or_load(problem; kwargs...) = optimize_or_load(nothing, "", problem; kwargs...)
-optimize_or_load(path, problem; kwargs...) =
-    optimize_or_load(nothing, path, problem; kwargs...)
+optimize_or_load(file, problem; kwargs...) =
+    optimize_or_load(nothing, file, problem; kwargs...)
+
+
+# Given a list of macro arguments, push all keyword parameters to the end.
+#
+# A macro will receive keyword arguments after ";" as either the first or
+# second argument (depending on whether the macro is invoked together with
+# `do`). The `reorder_macro_kw_params` function reorders the arguments to put
+# the keyword arguments at the end or the argument list, as if they had been
+# separated from the positional arguments by a comma instead of a semicolon.
+#
+# # Example
+#
+# With
+#
+# ```
+# macro mymacro(exs...)
+#     @show exs
+#     exs = reorder_macro_kw_params(exs)
+#     @show exs
+# end
+# ```
+#
+# the `exs` in e.g. `@mymacro(1, 2; a=3, b)` will end up as
+#
+# ```
+# (1, 2, :($(Expr(:kw, :a, 3))), :($(Expr(:kw, :b, :b))))
+# ```
+#
+# instead of the original
+#
+# ```
+# (:($(Expr(:parameters, :($(Expr(:kw, :a, 3))), :b))), 1, 2)
+# ```
+function reorder_macro_kw_params(exs)
+    exs = Any[exs...]
+    i = findfirst([(ex isa Expr && ex.head == :parameters) for ex in exs])
+    if !isnothing(i)
+        extra_kw_def = exs[i].args
+        for ex in extra_kw_def
+            push!(exs, ex isa Symbol ? Expr(:kw, ex, ex) : ex)
+        end
+        deleteat!(exs, i)
+    end
+    return Tuple(exs)
+end
 
 
 """
 Run [`optimize`](@ref) and store the result, or load the result if it exists.
 
 ```julia
-result, file = @optimize_or_load(
-    path="",
+result = @optimize_or_load(
+    file,
     problem;
-    method=<method>,
-    filename=nothing,
+    method,
     suffix="jld2",
-    prefix=DrWatson.default_prefix(config),
     tag=DrWatson.readenv("DRWATSON_TAG", true),
     gitpath=DrWatson.projectdir(),
     storepatch::Bool=DrWatson.readenv("DRWATSON_STOREPATCH", false),
     force=false,
     verbose=true,
     wsave_kwargs=Dict(),
-    savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
     metadata=nothing,
-    dry_run=false,
     kwargs...
 )
 ```
 
-runs `result = optimize(problem; method=<method>, kwargs...)` and stores
-`result` in an automatically named file inside `path`. The
-automatic file name is determined by [`optimization_savename`](@ref) and can be
-overriden by passing an explicit `filename`. The full path to the output file
-(`joinpath(path, filename)`) is returned as `file`.
-
-In addition to the `result`, the data in the output `file` may also contain
-some metadata, e.g. (automatically) "gitcommit" containing the git commit hash
-of the project the produced the file, and "script" with the file name and line
+runs `result = optimize(problem; method, kwargs...)` and stores
+`result` in `file`. Note that the `method` keyword argument is mandatory. In
+addition to the `result`, the data in the output `file` may also contain some
+metadata, e.g. (automatically) "gitcommit" containing the git commit hash of
+the project that produced the file, and "script" with the file name and line
 number where `@optimize_or_load` was called, see [`load_optimization`](@ref).
 If `metadata` is given as a dict on input, the data it contains will be
 included in the output file.
 
 If `file` already exists (and `force=false`), load the `result` from that file
 instead of running the optimization.
-
-If `dry_run=true`, return `(nothing, file)`. Depending on `verbose`, this will
-print information about whether `file` would be loaded or generated.
 
 The `@optimize_or_load` macro is intended to integrate well with the
 [`DrWatson`](https://juliadynamics.github.io/DrWatson.jl/stable/) framework
@@ -182,23 +177,19 @@ recomended, you are not *required* to use if for your projects in order to use
 
 ## I/O Keywords
 
-The following keyword arguments determine where the result is stored and in
-which format.
+The following keyword arguments determine how the `result` is stored:
 
-* `filename`: A file name to override the automatic file name. The `filename`
-   should not contain slashes: use `path` for the folder where `filename`
-   should be created.
-* `suffix`, `prefix`, `savename_kwargs`: Parameters for
-  [`optimization_savename`](@ref), which determines the automatic file name
+* `suffix`. File extension of `file`, determining the output data format (see
+  [DrWatson Saving Tools](https://juliadynamics.github.io/DrWatson.jl/stable/save/)).
+  If `file` does not end with the given extension, it will be appended.
 * `tag`: Whether to record the current "gitcommit" as metadata alongside the
-   optimization result, via
-   [`DrWatson.tagsave`](https://juliadynamics.github.io/DrWatson.jl/stable/save/#DrWatson.tagsave).
-   If not given explicitly, determine automatically from `suffix` or the
-   extension of `filename`.
+  optimization result, via
+  [`DrWatson.tagsave`](https://juliadynamics.github.io/DrWatson.jl/stable/save/#DrWatson.tagsave).
+  If not given explicitly, determine automatically from `suffix`.
 * `gitpath`, `storepatch`: Passed to `DrWatson.tagsave` if `tag` is `true`.
 * `force`: If `true`, run and store the optimization regardless of whether
   `file` already exists.
-* `verbose`: If `true`, print info about the process, if `file` does not exist.
+* `verbose`: If `true`, print info about the process
 * `wsave_kwargs`: Additional keyword arguments to pass to
   [`DrWatson.wsave`](https://juliadynamics.github.io/DrWatson.jl/stable/save/#Saving-Tools-1),
   e.g., to enable compression
@@ -207,41 +198,37 @@ All other keyword arguments are passed directly to [`optimize`](@ref).
 
 ## Related Functions
 
-* [`optimization_savename`](@ref): Function that determines the automatic
-  filename
 * [`DrWatson.@produce_or_load`](https://juliadynamics.github.io/DrWatson.jl/stable/save/#DrWatson.@produce_or_load):
   The lower-level backend implementing the functionality of
   `@optimize_or_load`.
 * [`load_optimization`](@ref): Function to load a file produced by
   `@optimize_or_load`
 """
-macro optimize_or_load(path, problem, args...)
-    args = Any[args...]
-    # Keywords added after a `;` are moved to the front of the expression
-    # that is passed to the macro. So instead of getting the path string
-    # an Expr is passed.
-    if path isa Expr && path.head == :parameters
-        length(args) > 0 || return :(throw(
-            MethodError(@optimize_or_load, $(esc(path)), $(esc(problem)), $(esc.(args)...)),
-        ))
-        extra_kw_def = path.args
-        path = problem
-        problem = popfirst!(args)
-        append!(args, extra_kw_def)
+macro optimize_or_load(exs...)
+    exs = reorder_macro_kw_params(exs)
+    exs = Any[exs...]
+    _isa_kw = arg -> (arg isa Expr && (arg.head == :kw || arg.head == :(=)))
+    if (length(exs) < 2) || _isa_kw(exs[1]) || _isa_kw(exs[2])
+        @show exs
+        error(
+            "@optimize_or_load macro must receive `file` and `problem` as positional arguments"
+        )
     end
+    if (length(exs) > 2) && !_isa_kw(exs[3])
+        @show exs
+        error(
+            "@optimize_or_load macro only takes two positional arguments (`file` and `problem`)"
+        )
+    end
+    file = popfirst!(exs)
+    problem = popfirst!(exs)
     # Save the source file name and line number of the calling line.
     s = QuoteNode(__source__)
     # Wrap the function f, such that the source can be saved in the data Dict.
     return quote
-        optimize_or_load(
-            $(esc(path)),
-            $(esc(problem));
-            $(esc.(DrWatson.convert_to_kw.(args))...)
-        ) do data  # _filter
+        optimize_or_load($(esc(file)), $(esc(problem)); $(esc.(exs)...)) do data # _filter
             # Extract the `gitpath` kw arg if it's there
-            kws = ((; kwargs...) -> Dict(kwargs...))(
-                $(esc.(DrWatson.convert_to_kw.(args))...),
-            )
+            kws = ((; kwargs...) -> Dict(kwargs))(; $(esc.(exs)...))
             gitpath = get(kws, :gitpath, DrWatson.projectdir())
             # Include the script tag with checking for the type of dict keys, etc.
             data = DrWatson.scripttag!(data, $s; gitpath=gitpath)
@@ -251,131 +238,16 @@ macro optimize_or_load(path, problem, args...)
 end
 
 
-"""Determine an automatic filename for storing an optimization result.
-
-```julia
-file = optimization_savename(
-    path="",
-    problem;
-    method=<method>,
-    suffix="jld2",
-    prefix="",
-    savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
-    kwargs...,
-)
-```
-
-finds an appropriate automatic filename for the result of
-`optimize(problem; method=<method>, kwargs...)`.
-
-By default, the `file` has the structure
-`<path>/<prefix>_<key1>=<value1>_..._<keyN>=<valueN>_method=<method>.jld2`
-where the key-value pairs are a subset of the keyword arguments used to
-instantiate `problem`, respectively the keyword arguments in `kwargs`. The
-`prefix` is best used as a "name" for the optimization problem to ensure a
-unique file name.
-
-Which key-value pairs that are taken into account and the way they are
-formatted can be customized via `savename_kwargs`.
-See [`default_optimization_savename_kwargs`](@ref) for the supported options.
-"""
-function optimization_savename(
-    path::AbstractString,
-    problem::ControlProblem;
-    method,
-    suffix="jld2",
-    prefix="",
-    savename_kwargs=DEFAULT_OPTIMIZATION_SAVENAME_KWARGS,
-    kwargs...
-)
-    for k ∈ keys(savename_kwargs)
-        if k ∉ _SAVENAME_AVAILABLE_KEYS
-            throw(
-                ArgumentError(
-                    "'$k' is not a valid keyword argument for savename. Use one of $(join(_SAVENAME_AVAILABLE_KEYS, ", "))",
-                ),
-            )
-        end
-    end
-    c = Saving.OptimizationConfig(problem, method, kwargs)
-    filename = DrWatson.savename(prefix, c, suffix; savename_kwargs...)
-    return joinpath(path, filename)
-end
-
-optimization_savename(problem; kwargs...) = optimization_savename("", problem; kwargs...)
-
-
-"""Set the default `savename_kwargs` for [`optimization_savename`](@ref).
-
-```julia
-savename_kwargs = default_optimization_savename_kwargs(;kwargs...)
-```
-
-sets entries in the `DEFAULT_OPTIMIZATION_SAVENAME_KWARGS` used in
-`optimization_savename` and thus determines the automatic name used to store
-optimization results.
-
-Use
-
-```julia
-default_optimization_savename_kwargs(reset=true)
-```
-
-to clear the settings from any previous call to
-`default_optimization_savename_kwargs`.
-
-The following keyword arguments are supported, cf. [`DrWatson.savename`]
-(https://juliadynamics.github.io/DrWatson.jl/dev/name/#DrWatson.savename):
-
-* `accesses` - List of strings indicating which fields (keys in `kwargs` of
-  [`ControlProblem`](@ref) or `kwargs` of
-  [`optimize`](@ref)/[`@optimize_or_load`](@ref)) can be included in the
-  output filename. By default, all fields with values matching `allowedtypes`
-  (excluding anonymous functions) are used.
-* `allowedtypes` - List of types of values eligible to be included in the
-  filename. Defaults to `[Real, String, Symbol, TimeType, Function]`
-* `connector` - String used to separate key-value pairs in the output filename.
-  Defaults to `"_"`.
-* `digits` - Used in `round` when formatting numbers, if no custom
-  `val_to_string`.
-* `equals` - String used between keys and values. Defaults to `"="`.
-* `ignores` - List of strings indicating which fields should be ignored.
-* `sigdigits` - Used in `round` when formatting numbers, if no custom
-  `val_to_string`.
-* `sort` - Whether to sort the fields alphabetically (default). If `false`, the
-  resulting file name my not be stable.
-* `val_to_string` - Function to convert values to string.
-"""
-function default_optimization_savename_kwargs(; reset=false, kwargs...)
-    # Note: default values are effectively set by the methods defined in
-    # src/saving.jl
-    if reset
-        empty!(DEFAULT_OPTIMIZATION_SAVENAME_KWARGS)
-    end
-    for (k, v) ∈ kwargs
-        if k ∉ _SAVENAME_AVAILABLE_KEYS
-            throw(
-                ArgumentError(
-                    "'$k' is not a valid keyword argument for savename. Use one of $(join(_SAVENAME_AVAILABLE_KEYS, ", "))",
-                ),
-            )
-        end
-        DEFAULT_OPTIMIZATION_SAVENAME_KWARGS[k] = v
-    end
-    return copy(DEFAULT_OPTIMIZATION_SAVENAME_KWARGS)
-end
-
-
 """Load a previously stored optimization.
 
 ```julia
-result = load_optimization(filename; verbose=true, kwargs...)
+result = load_optimization(file; verbose=true, kwargs...)
 ```
 
 recovers a `result` previously stored by [`@optimize_or_load`](@ref).
 
 ```julia
-result, metadata = load_optimization(filename; return_metadata=true, kwargs...)
+result, metadata = load_optimization(file; return_metadata=true, kwargs...)
 ```
 
 also obtains a metadata dict containing e.g., "gitcommit" or "script" depending

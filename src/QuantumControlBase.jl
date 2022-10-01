@@ -25,8 +25,7 @@ include("saving.jl")               # submodule Saving
 
 
 include("optimize.jl")
-export optimize, @optimize_or_load, optimization_savename, load_optimization
-export default_optimization_savename_kwargs
+export optimize, @optimize_or_load, load_optimization
 
 using .TestUtils: optimize_with_dummy_method
 optimize(problem, method::Val{:dummymethod}) = optimize_with_dummy_method(problem)
