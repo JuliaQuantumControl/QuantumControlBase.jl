@@ -1,8 +1,11 @@
 using Test
 using LinearAlgebra
 using QuantumControlBase.Functionals
-using QuantumControlBase.Functionals: chi_re!, chi_sm!, chi_ss!, make_analytic_chi
+using QuantumControlBase.Functionals: chi_re!, chi_sm!, chi_ss!
+using QuantumControlBase.Functionals: make_analytic_chi
+using QuantumControlBase.Functionals: grad_J_a_fluence!
 using QuantumControlBase.TestUtils
+using GRAPE: GrapeWrk
 
 
 N_HILBERT = 10
@@ -79,5 +82,34 @@ end
         @test maximum(norm.(χ1 .- χ6)) < 1e-12
 
     end
+
+end
+
+
+@testset "make-grad-J_a" begin
+    tlist = PROBLEM.tlist
+    wrk = GrapeWrk(PROBLEM)
+    pulsevals = wrk.pulsevals
+
+    J_a_val = J_a_fluence(pulsevals, tlist)
+    @test J_a_val > 0.0
+
+    G1 = copy(wrk.grad_J_a)
+    grad_J_a_fluence!(G1, pulsevals, tlist)
+
+    grad_J_a_zygote! = make_grad_J_a(J_a_fluence, tlist; force_zygote=true)
+    @test grad_J_a_zygote! ≢ grad_J_a_fluence!
+    G2 = copy(wrk.grad_J_a)
+    grad_J_a_zygote!(G2, pulsevals, tlist)
+
+    grad_J_a_fdm! = make_grad_J_a(J_a_fluence, tlist; use_finite_differences=true)
+    @test grad_J_a_fdm! ≢ grad_J_a_fluence!
+    @test grad_J_a_fdm! ≢ grad_J_a_zygote!
+    G3 = copy(wrk.grad_J_a)
+    grad_J_a_fdm!(G3, pulsevals, tlist)
+
+    @test 0.0 ≤ norm(G2 - G1) < 1e-12  # zygote can be exact
+    @test 0.0 < norm(G3 - G1) < 1e-12  # fdm should not be exact
+    @test 0.0 < norm(G3 - G2) < 1e-10
 
 end

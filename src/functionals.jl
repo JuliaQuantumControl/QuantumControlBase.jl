@@ -1,6 +1,8 @@
 module Functionals
 
 export J_T_ss, J_T_sm, J_T_re
+export J_a_fluence
+export make_grad_J_a
 export gate_functional, make_gate_chi
 export make_chi
 
@@ -626,5 +628,109 @@ make_analytic_chi(::typeof(J_T_sm), objectives) = chi_sm!
 make_analytic_chi(::typeof(J_T_re), objectives) = chi_re!
 make_analytic_chi(::typeof(J_T_ss), objectives) = chi_ss!
 
+
+@doc raw"""Running cost for the pulse fluence.
+
+```julia
+J_a = J_a_fluence(pulsevals, tlist)
+```
+
+calculates
+
+```math
+J_a = \sum_l \int_0^T |ϵ_l(t)|^2 dt = \left(\sum_{ln} |ϵ_{ln}|^2 \right) dt
+```
+
+where ``ϵ_{ln}`` are the values in the (vectorized) `pulsevals`, `n` is the
+index of the intervals of the time grid, and ``dt`` is the time step, taken
+from the first time interval of `tlist` and assumed to be uniform.
+"""
+function J_a_fluence(pulsevals, tlist)
+    dt = tlist[begin+1] - tlist[begin]
+    return sum(abs2.(pulsevals)) * dt
+end
+
+
+"""Analytic derivative for [`J_a_fluence`](@ref).
+
+```julia
+grad_J_a_fluence!(∇J_a, pulsevals, tlist)
+```
+
+sets the (vectorized) elements of `∇J_a` to ``2 ϵ_{ln} dt``, where
+``ϵ_{ln}`` are the (vectorized) elements of `pulsevals` and ``dt`` is the time
+step, taken from the first time interval of `tlist` and assumed to be uniform.
+"""
+function grad_J_a_fluence!(∇J_a, pulsevals, tlist)
+    dt = tlist[begin+1] - tlist[begin]
+    axpy!(2 * dt, pulsevals, ∇J_a)
+end
+
+
+"""
+Return a function to evaluate ``∂J_a/∂ϵ_{ln}`` for a pulse value running cost.
+
+```julia
+grad_J_a! = make_grad_J_a(
+    J_a,
+    tlist;
+    force_zygote=false,
+    use_finite_differences=false
+)
+```
+
+returns a function so that `grad_J_a!(∇J_a, pulsevals, tlist)` sets
+``∂J_a/∂ϵ_{ln}`` as the elements of the (vectorized) `∇J_a`. The function `J_a`
+must have the interface `J_a(pulsevals, tlist)`, see, e.g.,
+[`J_a_fluence`](@ref).
+
+If `force_zygote=true`, automatic differentiation with Zygote will be used to
+calculate the derivative.
+
+If `use_finite_differences=true`, the derivative will be calculated via finite
+differences. This may be used to verify Zygote gradients.
+
+By default, for functionals `J_a` that have a known analytic derivative, that
+analytic derivative will be used. For unknown functions, the derivative will be
+calculated via Zygote.
+
+!!! tip
+
+    In order to extend `make_grad_J_a` with an analytic implementation for a
+    new `J_a` function, define a new method `make_analytic_grad_J_a` like so:
+
+    ```julia
+    make_analytic_grad_J_a(::typeof(J_a_fluence), tlist) = grad_J_a_fluence!
+    ```
+
+    which links `make_grad_J_a` for [`J_a_fluence`](@ref) to
+    [`grad_J_a_fluence!`](@ref).
+"""
+function make_grad_J_a(J_a, tlist; force_zygote=false, use_finite_differences=false)
+    if (force_zygote || use_finite_differences)
+        return make_automatic_grad_J_a(J_a, tlist; use_finite_differences)
+    else
+        return make_analytic_grad_J_a(J_a, tlist)
+    end
+end
+
+
+function make_automatic_grad_J_a(J_a, tlist; use_finite_differences=false)
+    function automatic_grad_J_a!(∇J_a, pulsevals, tlist)
+        func = pulsevals -> J_a(pulsevals, tlist)
+        if use_finite_differences
+            fdm = FiniteDifferences.central_fdm(5, 1)
+            ∇J_a_fdm = FiniteDifferences.grad(fdm, func, pulsevals)[1]
+            copyto!(∇J_a, ∇J_a_fdm)
+        else
+            ∇J_a_zygote = Zygote.gradient(func, pulsevals)[1]
+            copyto!(∇J_a, ∇J_a_zygote)
+        end
+    end
+    return automatic_grad_J_a!
+end
+
+make_analytic_grad_J_a(J_a, tlist) = make_automatic_grad_J_a(J_a, tlist)
+make_analytic_grad_J_a(::typeof(J_a_fluence), tlist) = grad_J_a_fluence!
 
 end
