@@ -2,8 +2,7 @@ module Functionals
 
 export J_T_ss, J_T_sm, J_T_re
 export gate_functional, make_gate_chi
-export make_gradient, make_chi
-
+export make_chi
 
 using LinearAlgebra
 using Zygote: Zygote
@@ -48,6 +47,7 @@ lies in the unit circle of the complex plane. Usually, this means that the
 weights should sum to ``N``.
 """
 function f_tau(ϕ, objectives; τ=nothing)
+    # TODO: keyword arguments should not use unicode
     N = length(objectives)
     if τ === nothing
         τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
@@ -81,9 +81,13 @@ function F_ss(ϕ, objectives; τ=nothing)
     if τ === nothing
         τ = [dot(objectives[k].target_state, ϕ[k]) for k = 1:N]
     end
-    F::ComplexF64 = f_tau(ϕ, objectives; τ=abs.(τ) .^ 2)
-    @assert imag(F) < 1e-10
-    return real(F)
+    f::Float64 = 0
+    for k = 1:N
+        obj = objectives[k]
+        w = obj.weight
+        f += w * abs2(τ[k])
+    end
+    return f / N
 end
 
 @doc raw"""State-to-state phase-insensitive functional.
@@ -105,7 +109,7 @@ function J_T_ss(ϕ, objectives; τ=nothing)
 end
 
 
-@doc raw"""Krotov-states χ for functional [`J_T_ss`](@ref).
+@doc raw"""Backward boundary states ``|χ⟩`` for functional [`J_T_ss`](@ref).
 
 ```julia
 chi_ss!(χ, ϕ, objectives; τ=nothing)
@@ -116,7 +120,7 @@ sets the elements of `χ` according to
 ```math
 |χ_k⟩
 = -\frac{∂ J_{T,\text{ss}}}{∂ ⟨ϕ_k(T)|}
-= \frac{1}{N} w_k τ_k |ϕ^{\tgt}_k⟩
+= \frac{1}{N} w_k τ_k |ϕ^{\tgt}_k⟩\,,
 ```
 
 with ``|ϕ^{\tgt}_k⟩``, ``τ_k`` and ``w_k`` as defined in [`f_tau`](@ref).
@@ -147,13 +151,21 @@ F_sm(ϕ, objectives; τ=nothing)
 calculates
 
 ```math
-F_{\text{sm}} = |f_τ|^2  \quad\in [0, 1].
+F_{\text{sm}}
+    = |f_τ|^2
+    = \left\vert\frac{1}{N} \sum_{k=1}^{N} w_k τ_k\right\vert^2
+    = \frac{1}{N^2} \sum_{k=1}^{N} \sum_{j=1}^{N} w_k w_j τ̄_k τ_j
+    \quad\in [0, 1]\,,
 ```
+
+with ``w_k`` the weight for the k'th objective and ``τ_k`` the overlap of the
+k'th propagated state with the k'th target state, ``τ̄_k`` the complex conjugate
+of ``τ_k``, and ``N`` the number of objectives.
 
 All arguments are passed to [`f_tau`](@ref) to evaluate ``f_τ``.
 """
 function F_sm(ϕ, objectives; τ=nothing)
-    return abs(f_tau(ϕ, objectives; τ=τ))^2
+    return abs2(f_tau(ϕ, objectives; τ=τ))
 end
 
 
@@ -177,44 +189,7 @@ function J_T_sm(ϕ, objectives; τ=nothing)
 end
 
 
-@doc raw"""Gradient for [`J_T_sm`](@ref).
-
-```julia
-grad_J_T_sm!(∇J_T, τ, ∇τ)
-```
-
-analytically sets the elements of the gradient `∇J_T` according to
-
-```math
-\frac{∂ J_{T,\text{sm}}(\{τ_k\})}{\partial ϵ_{ln}}
-= \frac{1}{N^2} \sum_{k=1}^N \sum_{k'=1}^N\left[
-        \frac{\partial τ_{k'}^*}{∂ϵ_{ln}} τ_k +
-        τ_{k'}^* \frac{\partial τ_k^*}{∂ϵ_{ln}}
-   \right]
-= -\frac{2}{N} \Re \sum_{k=1}^N \sum_{k'=1}^N
-  τ_{k'}^* \frac{∂τ_k}{\partial ϵ_{ln}}
-```
-
-with all quantities as defined in [`make_gradient`](@ref).
-
-Note: this function can be obtained with
-`make_gradient(J_T_sm, objectives, via=:tau)`.
-"""
-function grad_J_T_sm!(∇J_T, τ, ∇τ)
-    N = length(τ) # number of objectives
-    L, N_T = size(∇τ[1])  # number of controls/time intervals
-    ∇J_T′ = reshape(∇J_T, L, N_T)  # writing to ∇J_T′ modifies ∇J_T
-    for l = 1:L
-        for n = 1:N_T
-            ∇J_T′[l, n] = real(sum([conj(τ[k′]) * ∇τ[k][l, n] for k′ = 1:N for k = 1:N]))
-        end
-    end
-    lmul!(-2 / N^2, ∇J_T)
-    return ∇J_T
-end
-
-
-@doc raw"""Krotov-states χ for functional [`J_T_sm`](@ref).
+@doc raw"""Backward boundary states ``|χ⟩`` for functional [`J_T_sm`](@ref).
 
 ```julia
 chi_sm!(χ, ϕ, objectives; τ=nothing)
@@ -264,11 +239,20 @@ F_re(ϕ, objectives; τ=nothing)
 calculates
 
 ```math
-F_{\text{re}} = \Re[f_{τ}] \quad\in \begin{cases}
+F_{\text{re}}
+    = \Re[f_{τ}]
+    = \Re\left[
+        \frac{1}{N} \sum_{k=1}^{N} w_k τ_k
+    \right]
+    \quad\in \begin{cases}
     [-1, 1] & \text{in Hilbert space} \\
     [0, 1] & \text{in Liouville space.}
 \end{cases}
 ```
+
+with ``w_k`` the weight for the k'th objective and ``τ_k`` the overlap of the
+k'th propagated state with the k'th target state, and ``N`` the number of
+objectives.
 
 All arguments are passed to [`f_tau`](@ref) to evaluate ``f_τ``.
 """
@@ -300,7 +284,7 @@ function J_T_re(ϕ, objectives; τ=nothing)
 end
 
 
-@doc raw"""Krotov-states χ for functional [`J_T_re`](@ref).
+@doc raw"""Backward boundary states ``|χ⟩`` for functional [`J_T_re`](@ref).
 
 ```julia
 chi_re!(χ, ϕ, objectives; τ=nothing)
@@ -343,7 +327,7 @@ J_T = gate_functional(J_T_U; kwargs...)
 ```
 
 constructs a functional `J_T` that meets the requirements for
-[`make_gradient`](@ref) and [`make_chi`](@ref). That is, the output `J_T` takes
+for Krotov/GRAPE and [`make_chi`](@ref). That is, the output `J_T` takes
 positional positional arguments `ϕ` and `objectives`. The input functional
 `J_T_U` is assumed to have the signature `J_T_U(U; kwargs...)` where `U` is a
 matrix with elements ``U_{ij} = ⟨Ψ_i|ϕ_j⟩``, where ``|Ψ_i⟩`` is the
@@ -351,6 +335,11 @@ matrix with elements ``U_{ij} = ⟨Ψ_i|ϕ_j⟩``, where ``|Ψ_i⟩`` is the
 basis state) and ``|ϕ_j⟩`` is the result of forward-propagating ``|Ψ_j⟩``. That
 is, `U` is the projection of the time evolution operator into the subspace
 defined by the basis in the `initial_states` of the  `objectives`.
+
+# See also
+
+* [`make_gate_chi`](@ref) — create a corresponding `chi` function that acts
+  more efficiently than the general [`make_chi`](@ref).
 """
 function gate_functional(J_T_U; kwargs...)
 
@@ -426,243 +415,46 @@ function make_gate_chi(J_T_U, objectives; use_finite_differences=false, kwargs..
 end
 
 
-@doc raw"""Gradient for an arbitrary functional evaluated via χ-states.
-
-```julia
-grad_J_T_via_chi!(∇J_T, τ, ∇τ)
-```
-
-sets the (vectorized) elements of the gradient `∇J_T` to the gradient
-``∂J_T/∂ϵ_{ln}`` for an arbitrary functional ``J_T=J_T(\{|ϕ_k(T)⟩\})``, under
-the assumption that
-
-```math
-\begin{aligned}
-    τ_k &= ⟨χ_k|ϕ_k(T)⟩ \quad \text{with} \quad |χ_k⟩ &= -∂J_T/∂⟨ϕ_k(T)|
-    \quad \text{and} \\
-    ∇τ_{kln} &= ∂τ_k/∂ϵ_{ln}\,,
-\end{aligned}
-```
-
-where ``|ϕ_k(T)⟩`` is a state resulting from the forward propagation of some
-initial state ``|ϕ_k⟩`` under the pulse values ``ϵ_{ln}`` where ``l`` numbers
-the controls and ``n`` numbers the time slices. The ``τ_k`` are the elements of
-`τ` and ``∇τ_{kln}`` corresponds to `∇τ[k][l, n]`.
-
-In this case,
-
-```math
-(∇J_T)_{ln} = ∂J_T/∂ϵ_{ln} = -2 \Re \sum_k ∇τ_{kln}\,,
-```
-
-see [`make_gradient`](@ref).
-
-Note that the definition of the ``|χ_k⟩`` matches exactly the definition
-of the boundary condition for the backward propagation in Krotov's method, see
-[`make_chi`](@ref). Specifically, there is a minus sign in front of the
-derivative, compensated by the minus sign in the factor ``(-2)`` of the final
-``(∇J_T)_{ln}``.
-"""
-function grad_J_T_via_chi!(∇J_T, τ, ∇τ)
-    N = length(τ) # number of objectives
-    L, N_T = size(∇τ[1])  # number of controls/time intervals
-    ∇J_T′ = reshape(∇J_T, L, N_T)  # writing to ∇J_T′ modifies ∇J_T
-    for l = 1:L
-        for n = 1:N_T
-            ∇J_T′[l, n] = real(sum([∇τ[k][l, n] for k = 1:N]))
-        end
-    end
-    lmul!(-2, ∇J_T)
-    return ∇J_T
-end
-
-
-@doc raw"""Return a function that evaluates the gradient ``∇J_T``.
-
-```julia
-grad_func! = make_gradient(J_T, objectives; via=:tau, force_zygote=false)
-```
-
-creates a function `gradfunc!(∇J_T, τ, ∇τ)` that takes a vector `τ` of values
-``τ_k`` and a vector `∇τ` of gradients ``∇τ_k`` where the ``(ln)``'th element
-of ``∇τ_k`` is ``∂τ_k/∂ϵ_{ln}``, and writes the element ``(ln)`` of the
-gradient `∇J_T` as ``∂J_T/∂ϵ_{ln}``. The definition of ``τ_k`` depends on
-`via`, see below. The ``ϵ_{ln}`` are the values of the control control field
-discretized to the midpoints of a time grid. The index ``l`` numbers the
-control and ``n`` numbers the time slice. The gradient (like the controls) are
-assumed to be vectorized. That is, ``∇J_T`` is a vector of values with a
-double-index ``(ln)``.
-
-The passed `J_T` parameter corresponding to the functional ``J_T`` must be a
-function that takes a vector of forward-propagates states `ϕ` and a vector of
-objectives as positional parameters.  It must also accept a vector `τ` as a
-keyword argument, which contains the overlaps of the states in `ϕ` and the
-`target_state` fields of the `objectives`. If the `objectices` do not define
-`target_states`, or if the ``τ``-values are not available, `J_T` must accept
-`τ=nothing`. See [`J_T_sm`](@ref) for an example.
-
-
-## Gradient via τ
-
-For `via=:tau` (default), we define
-
-```math
-τ_k ≡ ⟨ϕ_k^\tgt|ϕ_k(T)⟩
-```
-
-as the overlap of ``|ϕ_k(T)⟩`` resulting from the forward propagation of the
-`initial_state` ``|ϕ_k⟩``  of the k'th objective under the pulse values
-``ϵ_{ln}``, and ``|ϕ_k^\tgt⟩`` as the `target_state` of the k'th objective.
-
-We then understand ``J_T`` as a function of the ``τ_k``, and evaluate the
-elements of ``∇J_T`` via the chain rule:
-
-```math
-(∇J_T)_{ln} ≡ \frac{∂J_T(\{τ_k\})}{∂ϵ_{ln}}
-= 2\Re\sum_k
-    \frac{∂J_T}{∂τ_k}
-    \frac{∂τ_k}{∂ϵ_{ln}}\,.
-```
-
-Since the ``τ_k`` are complex numbers,
-
-```math
-\frac{∂J_T}{∂τ_k} = \frac{1}{2}\left(
-    \frac{∂ J_T}{∂ \Re[τ_k]}
-    - i \frac{∂ J_T}{∂ \Im[τ_k]}
-\right)
-```
-
-is defined as the [Wirtinger
-derivative](https://www.ekinakyurek.me/complex-derivatives-wirtinger/), and
-
-```math
-\frac{∂τ_k}{∂ϵ_{ln}} = \frac{∂\Re[τ_k]}{∂ϵ_{ln}} + i \frac{∂\Im[τ_k]}{∂ϵ_{ln}}
-```
-
-is simply the derivative of a complex number with respect to the real-valued
-``ϵ_{ln}``.
-
-Thus, the returned `grad_func!` effectively encodes the outer derivative
-``∂J_T/∂τ_k``. For functionals where that derivative is known analytically,
-the analytic expression is used, e.g., [`J_T_sm`](@ref) →
-[`grad_J_T_sm!`](@ref).
-
-Otherwise, or if `force_zygote=true`, the outer derivative is
-determined directly from `J_T`, via automatic differentiation (using
-[Zygote](https://fluxml.ai/Zygote.jl)).
-
-## Gradient via χ
-
-For `via=:chi`, the functional ``J_T`` is understood directly as a function of
-the forward-propagated states ``|ϕ_k⟩`` instead of a function of overlaps with
-the target states. This is useful in particular if the `objectives` do not
-define objectives and/or the functional `J_T` cannot be expressed in terms of
-overlaps.
-
-Again we apply a chain rule to calculate the elements of the gradient ``∇J_T``:
-
-```math
-\begin{split}
-(∇J_T)_{ln} &≡ \frac{∂J_T(\{|ϕ_k(T)⟩\})}{∂ϵ_{ln}}\\
-&= 2\Re\sum_k
-    \frac{∂J_T}{∂|ϕ_k(T)⟩}
-    \frac{∂|ϕ_k(T)⟩}{∂ϵ_{ln}} \\
-&= -2 \Re \sum_k \frac{∂}{∂ϵ_{ln}} ⟨χ_k(T)|ϕ_k(T)⟩\,,
-\end{split}
-```
-
-with
-
-```math
-|χ_k⟩
-= -\frac{J_T}{⟨ϕ_k(T)|}
-= -\frac{1}{2}\left(
-    \left\vert \frac{∂J_T}{∂\Re[ϕ_k]} \right\rangle
-    + i \left\vert \frac{∂J_T}{∂\Im[ϕ_k]} \right\rangle
-    \right)
-```
-
-as a matrix-calculus extension of the Wirtinger derivative. This definition of
-``|χ_k⟩`` (note the minus sign!) matches the definition of the boundary
-condition in Krotov's method, and for a given functional `J_T`, the
-states ``|χ_k⟩`` can be obtained with [`make_chi`](@ref).
-
-We define
-
-```math
-τ_k ≡ ⟨χ_k(T)|ϕ_k(T)⟩
-```
-
-and associate the `gradfunc!` argument `∇τ[k][l, n]` with
-
-```math
-(∇τ_k)_{ln} = \frac{∂τ_k}{∂ ϵ_{ln}}
-```
-
-so that structurally, ``(∇J_T)_{ln}`` is the same as for `via=:tau`, just that
-``τ_k`` is now defined with respect to the boundary condition state ``|χ_k⟩``
-instead of the target state ``|ϕ_k^\tgt⟩``.
-
-The returned `grad_func!` that encodes the above equations is
-[`grad_J_T_via_chi!`](@ref). This is independent of `J_T`, since the dependency
-on the functional `J_T` is entirely encoded in the states ``|χ_k(T)⟩``, and
-thus the gradient `∇τ`. Also, `force_zygote=true` has no effect for `via=:chi`.
-Instead, `force_zygote` should be passed to the underlying [`make_chi`](@ref).
-
-!!! tip
-
-    In order to extend `make_gradient` with an analytic implementation for a
-    new `J_T` function, define a new method like so:
-
-    ```julia
-    make_gradient(::typeof(J_T_sm), objectives, via::Val{:tau}) = grad_J_T_sm!
-    ```
-
-    which links `make_gradient` for [`J_T_sm`](@ref) to [`grad_J_T_sm!`](@ref).
-"""
-function make_gradient(J_T, objectives; via::Symbol=:tau, force_zygote=false)
-    if force_zygote && (via == :tau)
-        return make_zygote_gradient(J_T, objectives)
+# default for `via` argument of `make_chi`
+function _default_chi_via(objectives)
+    if any(isnothing(obj.target_state) for obj in objectives)
+        return :phi
     else
-        return make_gradient(J_T, objectives, Val(via))
+        return :tau
     end
 end
-
-function make_zygote_gradient(J_T, objectives)
-
-    function zygote_gradfunc!(∇J_T, τ, ∇τ)
-        ∇J = Zygote.gradient(τ -> J_T(nothing, objectives; τ=τ), τ)[1]
-        ∇J_T .= vec(sum(real(∇J) .* real.(∇τ) + imag(∇J) .* imag.(∇τ)))
-    end
-
-    return zygote_gradfunc!
-end
-
-make_gradient(J_T, objectives, via::Val{:chi}) = grad_J_T_via_chi!
-make_gradient(J_T, objectives, via::Val{:tau}) = make_zygote_gradient(J_T, objectives)
-make_gradient(::typeof(J_T_sm), objectives, via::Val{:tau}) = grad_J_T_sm!
 
 
 @doc raw"""Return a function that evaluates ``|χ_k⟩ = -∂J_T/∂⟨ϕ_k|``.
 
 ```julia
-chi! = make_chi(J_T, objectives; force_zygote=false)
+chi! = make_chi(
+    J_T,
+    objectives;
+    force_zygote=false,
+    via=(any(isnothing(obj.target_state) for obj in objectives) ? :phi : :tau),
+    use_finite_differences=false
+)
 ```
 
-creates a function `chi!(χ, ϕ, objectives; τ=nothing)` that sets
-``|χ_k⟩ = -∂J_T/∂⟨ϕ_k|``. This is the state used as the boundary condition for
-the backward propagation propagation in Krotov's method, as well as GRAPE if
-[`grad_J_T_via_chi!`](@ref) is used. It is defined as a [Wirtinger
-derivative](https://www.ekinakyurek.me/complex-derivatives-wirtinger/),
-see [`make_gradient`](@ref).
+creates a function `chi!(χ, ϕ, objectives; τ)` that sets
+the k'th element of `χ` to ``|χ_k⟩ = -∂J_T/∂⟨ϕ_k|``, where ``|ϕ_k⟩`` is the
+k'th element of `ϕ`. These are the states used as the boundary condition for
+the backward propagation propagation in Krotov's method and GRAPE. Each
+``|χₖ⟩`` is defined as a matrix calculus
+[Wirtinger derivative](https://www.ekinakyurek.me/complex-derivatives-wirtinger/),
 
-The function `J_T` must take a vector of states `ϕ`
-and a vector of `objectives` as positional parameters, and a vector `τ` as a
-keyword argument, see e.g. [`J_T_sm`](@ref). If all objectives define a
-`target_state`, then `τ` will be the overlap of the states `ϕ` with those
-target states. The functional `J_T` may or may not use those overlaps.
-Likewise, the resulting `chi!` may or may not use the keyword parameter `τ`.
+```math
+|χ_k(T)⟩ = -\frac{∂J_T}{∂⟨ϕ_k|} = -\frac{1}{2} ∇_{ϕ_k} J_T\,;\qquad
+∇_{ϕ_k} J_T ≡ \frac{∂J_T}{\Re[ϕ_k]} + i \frac{∂J_T}{\Im[ϕ_k]}\,.
+```
+
+The function `J_T` must take a vector of states `ϕ` and a vector of
+`objectives` as positional parameters, and a vector `τ` as a keyword argument,
+see e.g. [`J_T_sm`](@ref). If all objectives define a `target_state`, then `τ`
+will be the overlap of the states `ϕ` with those target states. The functional
+`J_T` may or may not use those overlaps.  Likewise, the resulting `chi!` may or
+may not use the keyword parameter `τ`.
 
 For functionals where ``-∂J_T/∂⟨ϕ_k|`` is known analytically, that analytic
 derivative will be returned, e.g.,
@@ -671,8 +463,58 @@ derivative will be returned, e.g.,
 * [`J_T_re`](@ref) → [`chi_re!`](@ref),
 * [`J_T_ss`](@ref) → [`chi_ss!`](@ref).
 
-Otherwise, or if `force_zygote=true`, automatic differentiation via Zygote is
-used to calculate the derivative directly from `J_T`.
+Otherwise, or if `force_zygote=true` or `use_finite_differences=true`, the
+derivative to calculate ``|χ_k⟩`` will be evaluated automatically, via
+automatic differentiation with Zygote, or via finite differences (which
+primarily serves for testing the Zygote gradient).
+
+When evaluating ``|χ_k⟩`` automatically, if `via=:phi` is given , ``|χ_k(T)⟩``
+is calculated directly as defined a above from the gradient with respect to
+the states ``\{|ϕ_k(T)⟩\}``. The resulting function `chi!` ignores any passed
+`τ` keyword argument.
+
+If `via=:tau` is given instead, the functional ``J_T`` is considered a function
+of overlaps ``τ_k = ⟨ϕ_k^\tgt|ϕ_k(T)⟩``. This requires that all `objectives`
+define a `target_state` and that `J_T` calculates the value of the functional
+solely based on the values of `τ` passed as a keyword argument.  With only the
+complex conjugate ``τ̄_k = ⟨ϕ_k(T)|ϕ_k^\tgt⟩`` having an explicit dependency on
+``⟨ϕ_k(T)|``,  the chain rule in this case is
+
+```math
+|χ_k(T)⟩
+= -\frac{∂J_T}{∂⟨ϕ_k|}
+= -\left(
+    \frac{∂J_T}{∂τ̄_k}
+    \frac{∂τ̄_k}{∂⟨ϕ_k|}
+  \right)
+= - \frac{1}{2} (∇_{τ_k} J_T) |ϕ_k^\tgt⟩\,.
+```
+
+Again, we have used the definition of the Wirtinger derivatives,
+
+```math
+\begin{align*}
+    \frac{∂J_T}{∂τ_k}
+    &≡ \frac{1}{2}\left(
+        \frac{∂ J_T}{∂ \Re[τ_k]}
+        - i \frac{∂ J_T}{∂ \Im[τ_k]}
+    \right)\,,\\
+    \frac{∂J_T}{∂τ̄_k}
+    &≡ \frac{1}{2}\left(
+        \frac{∂ J_T}{∂ \Re[τ_k]}
+        + i \frac{∂ J_T}{∂ \Im[τ_k]}
+    \right)\,,
+\end{align*}
+```
+
+and the definition of the Zygote gradient with respect to a complex scalar,
+
+```math
+∇_{τ_k} J_T = \left(
+    \frac{∂ J_T}{∂ \Re[τ_k]}
+    + i \frac{∂ J_T}{∂ \Im[τ_k]}
+\right)\,.
+```
 
 !!! tip
 
@@ -684,35 +526,100 @@ used to calculate the derivative directly from `J_T`.
     ```
 
     which links `make_chi` for [`J_T_sm`](@ref) to [`chi_sm!`](@ref).
+
+
+!!! warning
+
+    Zygote is notorious for being buggy (silently returning incorrect
+    gradients). Always test automatic derivatives against finite differences
+    and/or other automatic differentiation frameworks.
 """
-function make_chi(J_T, objectives; force_zygote=false)
-    if force_zygote
-        return make_zygote_chi(J_T, objectives)
+function make_chi(
+    J_T,
+    objectives;
+    force_zygote=false,
+    via=_default_chi_via(objectives),
+    use_finite_differences=false
+)
+    if (force_zygote || use_finite_differences)
+        return make_automatic_chi(J_T, objectives; via, use_finite_differences)
     else
         return make_analytic_chi(J_T, objectives)
     end
 end
 
-function make_zygote_chi(J_T, objectives)
+
+function make_automatic_chi(
+    J_T,
+    objectives;
+    via=_default_chi_via(objectives),
+    use_finite_differences=false
+)
 
     N = length(objectives)
 
-    function zygote_chi!(χ, ϕ, objectives; τ=nothing)
+    # TODO: keyword arguments (τ) should not use unicode
+
+    function zygote_chi_via_phi!(χ, ϕ, objectives; τ=nothing)
         function _J_T(Ψ...)
             -J_T(Ψ, objectives)
         end
-        for (k, ∇J) ∈ enumerate(Zygote.gradient(_J_T, ϕ...))
-            copyto!(χ[k], ∇J)
-            lmul!(0.5, χ[k])
+        if use_finite_differences
+            fdm = FiniteDifferences.central_fdm(5, 1)
+            ∇J = FiniteDifferences.grad(fdm, _J_T, ϕ...)
+        else
+            ∇J = Zygote.gradient(_J_T, ϕ...)
+        end
+        for (k, ∇Jₖ) ∈ enumerate(∇J)
+            # |χₖ⟩ = ½ |∇Jₖ⟩  # ½ corrects for gradient vs Wirtinger deriv
+            axpby!(0.5, ∇Jₖ, false, χ[k])
         end
     end
 
-    return zygote_chi!
+    function zygote_chi_via_tau!(χ, ϕ, objectives; τ)
+        function _J_T(τ...)
+            -J_T(ϕ, objectives; τ=τ)
+        end
+        if use_finite_differences
+            fdm = FiniteDifferences.central_fdm(5, 1)
+            ∇J = FiniteDifferences.grad(fdm, _J_T, τ...)
+        else
+            ∇J = Zygote.gradient(_J_T, τ...)
+        end
+        for (k, ∇Jₖ) ∈ enumerate(∇J)
+            ∂J╱∂τ̄ₖ = 0.5 * ∇Jₖ  # ½ corrects for gradient vs Wirtinger deriv
+            # |χₖ⟩ = (∂J/∂τ̄ₖ) |ϕₖ⟩
+            axpby!(∂J╱∂τ̄ₖ, objectives[k].target_state, false, χ[k])
+        end
+    end
+
+    # Test J_T function interface
+    ϕ_initial = [obj.initial_state for obj in objectives]
+    J_T_val = J_T(ϕ_initial, objectives)
+    J_T_val::Float64
+
+    if via ≡ :phi
+        return zygote_chi_via_phi!
+    elseif via ≡ :tau
+        ϕ_tgt = [obj.target_state for obj in objectives]
+        if any(isnothing.(ϕ_tgt))
+            error("`via=:tau` requires that all objectives define a `target_state`")
+        end
+        τ_tgt = ComplexF64[1.0 for obj in objectives]
+        if abs(J_T(ϕ_tgt, objectives) - J_T(nothing, objectives; τ=τ_tgt)) > 1e-12
+            error(
+                "`via=:tau` in `make_chi` requires that `J_T`=$(repr(J_T)) can be evaluated solely via `τ`"
+            )
+        end
+        return zygote_chi_via_tau!
+    else
+        error("`via` must be either `:phi` or `:tau`, not $(repr(via))")
+    end
 
 end
 
-make_analytic_chi(J_T, objectives) = make_zygote_chi(J_T, objectives)
-# Well, the above fallback to `make_zygote_chi` is clearly not "analytic", but
+make_analytic_chi(J_T, objectives) = make_automatic_chi(J_T, objectives)
+# Well, the above fallback to `make_automatic_chi` is clearly not "analytic", but
 # the intent of this name is to allow users to define new analytic
 # implementation, cf. the explanation in the doc of `make_chi`.
 make_analytic_chi(::typeof(J_T_sm), objectives) = chi_sm!
