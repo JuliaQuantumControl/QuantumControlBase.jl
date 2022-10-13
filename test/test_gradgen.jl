@@ -3,13 +3,12 @@ using LinearAlgebra
 using QuantumPropagators: initprop, propstep!
 using QuantumPropagators.Newton
 using QuantumPropagators.SpectralRange: specrange
-using QuantumControlBase:
-    TimeDependentGradGenerator, GradGenerator, GradVector, resetgradvec!
+using QuantumControlBase: GradGenerator, GradgenOperator, GradVector, resetgradvec!
 using QuantumControlBase.TestUtils
 using Zygote
-using QuantumPropagators.Controls: evalcontrols
+using QuantumPropagators.Generators: evalcontrols
 
-@testset "GradGenerator" begin
+@testset "GradgenOperator" begin
 
     N = 10  # size of Hilbert space
     ρ = 1.0  # spectral radius
@@ -29,7 +28,7 @@ using QuantumPropagators.Controls: evalcontrols
 
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
 
-    G̃_of_t = TimeDependentGradGenerator(Ĥ_of_t)
+    G̃_of_t = GradGenerator(Ĥ_of_t)
     G̃ = evalcontrols(G̃_of_t, vals_dict)
     Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
 
@@ -67,7 +66,7 @@ using QuantumPropagators.Controls: evalcontrols
 
     ###########################################################################
     # Compare against explicit Grad-Gen
-    # This checks whether the application of a GradGenerator to a GradVector an
+    # This checks whether the application of a GradgenOperator to a GradVector an
     # all the linear-algebra methods are implemented correctly
 
     G̃_full = [
@@ -121,7 +120,7 @@ using QuantumPropagators.Controls: evalcontrols
 
     propagator = initprop(
         Ψ̃,
-        (G̃,),
+        G̃,
         [0, dt];
         method=:expprop,
         inplace=true,
@@ -184,7 +183,7 @@ using QuantumPropagators.Controls: evalcontrols
 
     @test norm(Ψ̃_out.state - Û_Ψ) < 1e-12  # still correct?
     τ = Ψtgt ⋅ Û_Ψ
-    # `grad` is gradient of F_sm based on Newton-prop of GradGenerator
+    # `grad` is gradient of F_sm based on Newton-prop of GradgenOperator
     # For ∂F/∂τ see Eq. (3.47) of Phd Thesis of Michael Goerz
     grad = [
         2 * real(conj(τ) * (Ψtgt ⋅ Ψ̃_out.grad_states[1])),
@@ -203,7 +202,7 @@ using QuantumPropagators.Controls: evalcontrols
     χ̃ = GradVector(Ψtgt, num_controls)
     wrk_bw = NewtonWrk(χ̃)
     Ĥ_adj_of_t = (copy(Ĥ₀'), (copy(Ĥ₁'), ϵ₁), (copy(Ĥ₂'), ϵ₂))
-    G̃_adj_of_t = TimeDependentGradGenerator(Ĥ_adj_of_t)
+    G̃_adj_of_t = GradGenerator(Ĥ_adj_of_t)
     G̃_adj = evalcontrols(G̃_adj_of_t, vals_dict)
     newton!(χ̃, G̃_adj, -dt, wrk)
     χ̃_out = copy(χ̃)
@@ -261,7 +260,7 @@ end
     ϵ₂ = t -> 1.0
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
-    G̃_of_t = TimeDependentGradGenerator(Ĥ_of_t)
+    G̃_of_t = GradGenerator(Ĥ_of_t)
     Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
     G̃ = evalcontrols(G̃_of_t, vals_dict)
 
@@ -314,7 +313,7 @@ end
     ϵ₂ = t -> 1.0
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
-    G̃_of_t = TimeDependentGradGenerator(Ĥ_of_t)
+    G̃_of_t = GradGenerator(Ĥ_of_t)
     Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
     G̃ = evalcontrols(G̃_of_t, vals_dict)
 

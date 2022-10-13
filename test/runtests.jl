@@ -14,13 +14,8 @@ using SafeTestsets
         include("test_propagation.jl")
     end
 
-    print("\n* Liouvillian (test_liouvillian.jl):")
-    @time @safetestset "Liouvillian" begin
-        include("test_liouvillian.jl")
-    end
-
-    print("\n* GradGenerator (test_gradgen.jl):")
-    @time @safetestset "GradGenerator" begin
+    print("\n* GradgenOperator (test_gradgen.jl):")
+    @time @safetestset "GradgenOperator" begin
         include("test_gradgen.jl")
     end
 

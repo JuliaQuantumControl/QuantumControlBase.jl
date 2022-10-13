@@ -1,7 +1,7 @@
 # Extension of QuantumPropagators.propagate for control objectives.
 
 import QuantumPropagators
-using QuantumPropagators.Controls: substitute_controls
+using QuantumPropagators.Generators: substitute_controls
 import .ConditionalThreads: @threadsif
 
 

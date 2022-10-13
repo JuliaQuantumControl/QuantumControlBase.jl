@@ -27,7 +27,7 @@ using LocalCoverage:
     FileCoverageSummary,
     CoverageTools
 using Printf
-using QuantumPropagators.Controls: getcontrols, discretize, discretize_on_midpoints
+using QuantumPropagators.Generators: getcontrols, discretize, discretize_on_midpoints
 
 import ..Objective
 import ..ControlProblem

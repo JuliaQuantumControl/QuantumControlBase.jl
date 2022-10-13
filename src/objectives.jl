@@ -1,5 +1,8 @@
 import Base
 import QuantumPropagators
+using Printf
+
+using QuantumPropagators.Generators: Generator, Operator
 
 # TODO: consider using kwargs for initprop, and document that feature.
 """Optimization objective.
@@ -53,6 +56,12 @@ struct Objective{ST,GT}
     end
 
 end
+
+
+function Base.show(io::IO, obj::Objective{ST,GT}) where {ST,GT}
+    print(io, "Objective{$ST, $GT}(…)")
+end
+
 
 
 function Base.propertynames(obj::Objective, private::Bool=false)
@@ -152,8 +161,19 @@ function dynamical_generator_adjoint(G::Tuple)
     return Tuple(result)
 end
 
+function dynamical_generator_adjoint(G::Generator)
+    ops = [dynamical_generator_adjoint(op) for op in G.ops]
+    return Generator(ops, G.amplitudes)
+end
+
+function dynamical_generator_adjoint(G::Operator)
+    ops = [dynamical_generator_adjoint(op) for op in G.ops]
+    coeffs = [Base.adjoint(c) for c in G.coeffs]
+    return Operator(ops, G.coeffs)
+end
+
 # fallback adjoint
-dynamical_generator_adjoint(G) = Base.adjoint(G)
+dynamical_generator_adjoint(G) = copy(Base.adjoint(G))
 
 
 """Construct the adjoint of an optimization objective.
@@ -189,11 +209,11 @@ extracts the controls from a list of objectives (i.e., from each objective's
 `generator`). Controls that occur multiple times in the different objectives
 will occur only once in the result.
 """
-function QuantumPropagators.Controls.getcontrols(objectives::Vector{<:Objective})
+function QuantumPropagators.Generators.getcontrols(objectives::Vector{<:Objective})
     controls = []
     seen_control = IdDict{Any,Bool}()
     for obj in objectives
-        obj_controls = QuantumPropagators.Controls.getcontrols(obj.generator)
+        obj_controls = QuantumPropagators.Generators.getcontrols(obj.generator)
         for control in obj_controls
             if !haskey(seen_control, control)
                 push!(controls, control)
