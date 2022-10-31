@@ -2,8 +2,7 @@ import LinearAlgebra
 import QuantumPropagators
 import Base: -, *
 
-using QuantumPropagators.Generators:
-    getcontrols, getcontrolderivs, evalcontrols, evalcontrols!
+using QuantumPropagators.Generators: getcontrols, evalcontrols, evalcontrols!
 
 
 @doc raw"""Extended generator for the standard dynamic gradient.
@@ -31,7 +30,7 @@ G̃ = \begin{pmatrix}
 
 Note that the ``∂G/∂ϵₗ(t)`` (``Ĥₗ`` in the above example) may be
 time-dependent, to account for the possibility of non-linear control terms, see
-[`getcontrolderiv`](@ref QuantumPropagators.Generators.getcontrolderiv).
+[`getcontrolderiv`](@ref).
 """
 struct GradGenerator{GT,CDT,CT}
     G::GT

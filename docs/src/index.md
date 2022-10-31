@@ -40,11 +40,20 @@ Modules = [QuantumControlBase]
 Public = false
 ```
 
+### `PulseParametrizations` Sub-Module
 
-### `Shapes` Sub-Module
+#### public members
 
 ```@autodocs
-Modules = [QuantumControlBase.Shapes]
+Modules = [QuantumControlBase.PulseParametrizations]
+Private = false
+```
+
+#### private members
+
+```@autodocs
+Modules = [QuantumControlBase.PulseParametrizations]
+Public = false
 ```
 
 ### `Functionals` Sub-Module

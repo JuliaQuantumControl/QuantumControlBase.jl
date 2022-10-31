@@ -8,6 +8,8 @@ export ControlProblem, Objective
 include("propagate.jl")
 export propagate_objective, propagate_objectives
 
+include("derivs.jl")
+
 include("gradgen.jl")
 
 include("infohook.jl")
@@ -15,8 +17,6 @@ export chain_infohooks
 
 
 include("pulse_parametrizations.jl")  # submodule PulseParametrizations
-include("amplitudes.jl")              # submodule Amplitudes
-include("shapes.jl")                  # submodule Shapes
 include("functionals.jl")             # submodule Functionals
 include("weyl_chamber.jl")            # submodule WeylChamber
 include("testutils.jl")               # submodule TestUtils

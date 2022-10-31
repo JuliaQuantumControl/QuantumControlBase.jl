@@ -4,14 +4,15 @@ using SafeTestsets
 # Note: comment outer @testset to stop after first @safetestset failure
 @time @testset verbose = true "QuantumControlBase" begin
 
-    print("\n* Shapes (test_shapes.jl):")
-    @time @safetestset "Shapes" begin
-        include("test_shapes.jl")
-    end
 
     print("\n* Propagation (test_propagation.jl):")
     @time @safetestset "Propagation" begin
         include("test_propagation.jl")
+    end
+
+    print("\n* Derivatives (test_derives.jl):")
+    @time @safetestset "Derivatives" begin
+        include("test_derivs.jl")
     end
 
     print("\n* GradgenOperator (test_gradgen.jl):")
