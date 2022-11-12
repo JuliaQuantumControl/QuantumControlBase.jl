@@ -65,7 +65,7 @@ function optimize_or_load(
         "",
         Dict();
         filename=file,
-        suffix=suffix,
+        suffix="",
         tag=tag,
         gitpath=gitpath,
         loadfile=true,

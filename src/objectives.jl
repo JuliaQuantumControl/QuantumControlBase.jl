@@ -4,7 +4,7 @@ using Printf
 
 using QuantumPropagators.Generators: Generator, Operator
 
-# TODO: consider using kwargs for initprop, and document that feature.
+# TODO: consider using kwargs for init_prop, and document that feature.
 """Optimization objective.
 
 ```julia
@@ -202,18 +202,18 @@ end
 
 """
 ```julia
-controls = getcontrols(objectives)
+controls = get_controls(objectives)
 ```
 
 extracts the controls from a list of objectives (i.e., from each objective's
 `generator`). Controls that occur multiple times in the different objectives
 will occur only once in the result.
 """
-function QuantumPropagators.Generators.getcontrols(objectives::Vector{<:Objective})
+function QuantumPropagators.Generators.get_controls(objectives::Vector{<:Objective})
     controls = []
     seen_control = IdDict{Any,Bool}()
     for obj in objectives
-        obj_controls = QuantumPropagators.Generators.getcontrols(obj.generator)
+        obj_controls = QuantumPropagators.Generators.get_controls(obj.generator)
         for control in obj_controls
             if !haskey(seen_control, control)
                 push!(controls, control)

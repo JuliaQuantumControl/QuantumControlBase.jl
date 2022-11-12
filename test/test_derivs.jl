@@ -1,6 +1,6 @@
 using Test
 using LinearAlgebra
-using QuantumControlBase: QuantumControlBase, getcontrolderiv, getcontrolderivs
+using QuantumControlBase: QuantumControlBase, get_control_deriv, get_control_derivs
 using QuantumPropagators
 using QuantumPropagators.Generators
 using QuantumPropagators.Controls
@@ -22,7 +22,7 @@ struct MyScaledAmpl
 end
 
 
-function QuantumControlBase.getcontrolderiv(a::MySquareAmpl, control)
+function QuantumControlBase.get_control_deriv(a::MySquareAmpl, control)
     if control ≡ a.control
         return MyScaledAmpl(2.0, control)
     else
@@ -36,7 +36,7 @@ function QuantumPropagators.Generators.evalcontrols(a::MyScaledAmpl, vals_dict, 
 end
 
 
-@testset "Standard getcontrolderivs" begin
+@testset "Standard get_control_derivs" begin
     H₀ = random_hermitian_matrix(5, 1.0)
     H₁ = random_hermitian_matrix(5, 1.0)
     H₂ = random_hermitian_matrix(5, 1.0)
@@ -44,13 +44,13 @@ end
     ϵ₂ = t -> 1.0
     H = (H₀, (H₁, ϵ₁), (H₂, ϵ₂))
 
-    @test getcontrolderiv(ϵ₁, ϵ₁) == 1.0
-    @test getcontrolderiv(ϵ₁, ϵ₂) == 0.0
+    @test get_control_deriv(ϵ₁, ϵ₁) == 1.0
+    @test get_control_deriv(ϵ₁, ϵ₂) == 0.0
 
-    derivs = getcontrolderivs(H₀, (ϵ₁, ϵ₂))
+    derivs = get_control_derivs(H₀, (ϵ₁, ϵ₂))
     @test all(isnothing.(derivs))
 
-    derivs = getcontrolderivs(H, (ϵ₁, ϵ₂))
+    derivs = get_control_derivs(H, (ϵ₁, ϵ₂))
     @test derivs[1] isa Matrix{ComplexF64}
     @test derivs[2] isa Matrix{ComplexF64}
     @test norm(derivs[1] - H₁) < 1e-14
@@ -61,12 +61,12 @@ end
         @test O ≡ deriv
     end
 
-    @test isnothing(getcontrolderiv(H, t -> 3.0))
+    @test isnothing(get_control_deriv(H, t -> 3.0))
 
 end
 
 
-@testset "Nonlinear getcontrolderivs" begin
+@testset "Nonlinear get_control_derivs" begin
 
     H₀ = random_hermitian_matrix(5, 1.0)
     H₁ = random_hermitian_matrix(5, 1.0)
@@ -75,7 +75,7 @@ end
     ϵ₂ = t -> 1.0
     H = (H₀, (H₁, MySquareAmpl(ϵ₁)), (H₂, MySquareAmpl(ϵ₂)))
 
-    derivs = getcontrolderivs(H, (ϵ₁, ϵ₂))
+    derivs = get_control_derivs(H, (ϵ₁, ϵ₂))
     @test derivs[1] isa Generator
     @test derivs[2] isa Generator
     @test derivs[1].ops[1] ≡ H₁
@@ -93,6 +93,6 @@ end
     @test O₂.ops[1] ≡ H₂
     @test O₂.coeffs[1] ≈ (2 * 2.0)
 
-    @test isnothing(getcontrolderiv(H, t -> 3.0))
+    @test isnothing(get_control_deriv(H, t -> 3.0))
 
 end

@@ -28,7 +28,7 @@ using LocalCoverage:
     FileCoverageSummary,
     CoverageTools
 using Printf
-using QuantumPropagators.Controls: getcontrols, discretize, discretize_on_midpoints
+using QuantumPropagators.Controls: get_controls, discretize, discretize_on_midpoints
 
 import ..Objective
 import ..ControlProblem
@@ -529,7 +529,7 @@ mutable struct DummyOptimizationResult
 
     function DummyOptimizationResult(problem)
         tlist = problem.tlist
-        controls = getcontrols(problem.objectives)
+        controls = get_controls(problem.objectives)
         iter_start = get(problem.kwargs, :iter_start, 0)
         iter = iter_start
         iter_stop = get(problem.kwargs, :iter_stop, 20)
@@ -569,7 +569,7 @@ end
 function DummyOptimizationWrk(problem)
     objectives = [obj for obj in problem.objectives]
     adjoint_objectives = [adjoint(obj) for obj in problem.objectives]
-    controls = getcontrols(objectives)
+    controls = get_controls(objectives)
     kwargs = Dict(problem.kwargs)
     tlist = problem.tlist
     if haskey(kwargs, :continue_from)

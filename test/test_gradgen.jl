@@ -1,6 +1,6 @@
 using Test
 using LinearAlgebra
-using QuantumPropagators: initprop, propstep!
+using QuantumPropagators: init_prop, prop_step!
 using QuantumPropagators.Newton
 using QuantumPropagators.SpectralRange: specrange
 using QuantumControlBase: GradGenerator, GradgenOperator, GradVector, resetgradvec!
@@ -118,7 +118,7 @@ using QuantumPropagators.Generators: evalcontrols
     ###########################################################################
     # Test standard expprop
 
-    propagator = initprop(
+    propagator = init_prop(
         Ψ̃,
         G̃,
         [0, dt];
@@ -127,7 +127,7 @@ using QuantumPropagators.Generators: evalcontrols
         convert_state=Vector{ComplexF64},
         convert_operator=Matrix{ComplexF64}
     )
-    Ψ̃_out_exp = propstep!(propagator)
+    Ψ̃_out_exp = prop_step!(propagator)
     @test norm(Ψ̃_out_exp - Ψ̃_out) < 1e-11
     resetgradvec!(Ψ̃, Ψ)
 

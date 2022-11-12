@@ -334,7 +334,7 @@ function evalcontrols(ampl::ShapedParametrizedContinuousAmplitude, vals_dict, tl
     error("ParametrizedAmplitude must be initialized with tlist")
 end
 
-function getcontrolderiv(ampl::ParametrizedAmplitude, control)
+function get_control_deriv(ampl::ParametrizedAmplitude, control)
     if control ≡ ampl.control
         return ParametrizationDerivative(control, ampl.parametrization.da_deps_derivative)
     else
@@ -342,7 +342,7 @@ function getcontrolderiv(ampl::ParametrizedAmplitude, control)
     end
 end
 
-function getcontrolderiv(ampl::ShapedParametrizedPulseAmplitude, control)
+function get_control_deriv(ampl::ShapedParametrizedPulseAmplitude, control)
     if control ≡ ampl.control
         return ShapedParametrizationPulseDerivative(
             control,
@@ -354,7 +354,7 @@ function getcontrolderiv(ampl::ShapedParametrizedPulseAmplitude, control)
     end
 end
 
-function getcontrolderiv(ampl::ShapedParametrizedContinuousAmplitude, control)
+function get_control_deriv(ampl::ShapedParametrizedContinuousAmplitude, control)
     if control ≡ ampl.control
         return ShapedParametrizationContinuousDerivative(
             control,

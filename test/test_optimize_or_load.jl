@@ -15,6 +15,7 @@ using QuantumControlBase.TestUtils
         method=:dummymethod,
         metadata=Dict("testset" => "metadata", "method" => :dummymethod,)
     )
+    @show outfile
     @test result.converged
     @test isfile(outfile)
     result_load, metadata = load_optimization(outfile; return_metadata=true)

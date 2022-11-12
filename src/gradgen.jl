@@ -2,7 +2,7 @@ import LinearAlgebra
 import QuantumPropagators
 import Base: -, *
 
-using QuantumPropagators.Generators: getcontrols, evalcontrols, evalcontrols!
+using QuantumPropagators.Generators: get_controls, evalcontrols, evalcontrols!
 
 
 @doc raw"""Extended generator for the standard dynamic gradient.
@@ -30,7 +30,7 @@ G̃ = \begin{pmatrix}
 
 Note that the ``∂G/∂ϵₗ(t)`` (``Ĥₗ`` in the above example) may be
 time-dependent, to account for the possibility of non-linear control terms, see
-[`getcontrolderiv`](@ref).
+[`get_control_deriv`](@ref).
 """
 struct GradGenerator{GT,CDT,CT}
     G::GT
@@ -38,8 +38,8 @@ struct GradGenerator{GT,CDT,CT}
     controls::Vector{CT}
 
     function GradGenerator(G::GT) where {GT}
-        controls = collect(getcontrols(G))
-        control_derivs = getcontrolderivs(G, controls)
+        controls = collect(get_controls(G))
+        control_derivs = get_control_derivs(G, controls)
         CT = eltype(controls)
         CDT = eltype(control_derivs)
         new{GT,CDT,CT}(G, control_derivs, controls)
@@ -82,14 +82,14 @@ function GradgenOperator(gradgen::GradGenerator)
 end
 
 
-function QuantumPropagators.Generators.getcontrols(gradgen::GradGenerator)
-    return getcontrols(gradgen.G)
+function QuantumPropagators.Generators.get_controls(gradgen::GradGenerator)
+    return get_controls(gradgen.G)
 end
 
 QuantumPropagators.Generators.evalcontrols(O::GradgenOperator, _...) = O
 QuantumPropagators.Generators.evalcontrols!(O1::T, O2::T, _...) where {T<:GradgenOperator} =
     O1
-QuantumPropagators.Generators.getcontrols(O1::GradgenOperator) = Tuple([])
+QuantumPropagators.Generators.get_controls(O1::GradgenOperator) = Tuple([])
 
 
 function QuantumPropagators.Generators.evalcontrols!(

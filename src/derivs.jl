@@ -5,32 +5,32 @@ using QuantumPropagators.Amplitudes: LockedAmplitude, ShapedAmplitude
 """Get a vector of the derivatives of `generator` w.r.t. each control.
 
 ```julia
-getcontrolderivs(generator, controls)
+get_control_derivs(generator, controls)
 ```
 
 return as vector containing the derivative of `generator` with respect to each
 control in `controls`. The elements of the vector are either `nothing` if
 `generator` does not depend on that particular control, or a function `μ(α)`
 that evaluates the derivative for a particular value of the control, see
-[`getcontrolderiv`](@ref).
+[`get_control_deriv`](@ref).
 """
-function getcontrolderivs(generator, controls)
+function get_control_derivs(generator, controls)
     controlderivs = []
     for (i, control) in enumerate(controls)
-        push!(controlderivs, getcontrolderiv(generator, control))
+        push!(controlderivs, get_control_deriv(generator, control))
     end
     return [controlderivs...]  # narrow eltype
 end
 
-getcontrolderivs(operator::AbstractMatrix, controls) = [nothing for c ∈ controls]
-getcontrolderivs(operator::Operator, controls) = [nothing for c ∈ controls]
+get_control_derivs(operator::AbstractMatrix, controls) = [nothing for c ∈ controls]
+get_control_derivs(operator::Operator, controls) = [nothing for c ∈ controls]
 
 
 @doc raw"""
 Get the derivative of the generator ``G`` w.r.t. the control ``ϵ(t)``.
 
 ```julia
-μ  = getcontrolderiv(generator, control)
+μ  = get_control_deriv(generator, control)
 ```
 
 returns `nothing` if the `generator` (Hamiltonian or Liouvillian) does not
@@ -49,16 +49,16 @@ for particular values of the controls and a particular point in time.
 For constant generators, e.g. an [`Operator`](@ref), the result is always
 `nothing`.
 """
-function getcontrolderiv(generator::Tuple, control)
-    return getcontrolderiv(_make_generator(generator...), control)
+function get_control_deriv(generator::Tuple, control)
+    return get_control_deriv(_make_generator(generator...), control)
 end
 
 
-function getcontrolderiv(generator::Generator, control)
+function get_control_deriv(generator::Generator, control)
     terms = []
     drift_offset = length(generator.ops) - length(generator.amplitudes)
     for (i, ampl) in enumerate(generator.amplitudes)
-        ∂a╱∂ϵ = getcontrolderiv(ampl, control)
+        ∂a╱∂ϵ = get_control_deriv(ampl, control)
         if ∂a╱∂ϵ == 0.0
             continue
         elseif ∂a╱∂ϵ == 1.0
@@ -78,7 +78,7 @@ end
 
 @doc raw"""
 ```julia
-a = getcontrolderiv(ampl, control)
+a = get_control_deriv(ampl, control)
 ```
 
 returns the derivative ``∂a_l(t)/∂ϵ_{l'}(t)`` of the given amplitude
@@ -89,17 +89,17 @@ amplitudes, the result may be another amplitude that depends on the controls
 and potentially on time, but can be evaluated to a constant with
 [`evalcontrols`](@ref).
 """
-getcontrolderiv(ampl::Function, control) = (ampl ≡ control) ? 1.0 : 0.0
-getcontrolderiv(ampl::Vector, control) = (ampl ≡ control) ? 1.0 : 0.0
+get_control_deriv(ampl::Function, control) = (ampl ≡ control) ? 1.0 : 0.0
+get_control_deriv(ampl::Vector, control) = (ampl ≡ control) ? 1.0 : 0.0
 
-getcontrolderiv(operator::AbstractMatrix, control) = nothing
-getcontrolderiv(operator::Operator, control) = nothing
+get_control_deriv(operator::AbstractMatrix, control) = nothing
+get_control_deriv(operator::Operator, control) = nothing
 
 
 # Amplitudes
 
-getcontrolderiv(ampl::LockedAmplitude, control) =
+get_control_deriv(ampl::LockedAmplitude, control) =
     (control ≡ ampl.control) ? LockedAmplitude(ampl.shape) : 0.0
 
-getcontrolderiv(ampl::ShapedAmplitude, control) =
+get_control_deriv(ampl::ShapedAmplitude, control) =
     (control ≡ ampl.control) ? LockedAmplitude(ampl.shape) : 0.0
