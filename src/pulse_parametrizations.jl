@@ -316,23 +316,23 @@ struct ShapedParametrizedContinuousAmplitude <: ShapedParametrizedAmplitude
 end
 
 
-function evalcontrols(ampl::ParametrizedAmplitude, vals_dict, tlist, n)
-    return ampl.parametrization.a_of_epsilon(vals_dict[ampl.control])
+function evaluate(ampl::ParametrizedAmplitude, tlist, n; vals_dict)
+    ϵ = evaluate(ampl.control, tlist, n; vals_dict)
+    return ampl.parametrization.a_of_epsilon(ϵ)
 end
 
-function evalcontrols(ampl::ShapedParametrizedPulseAmplitude, vals_dict, tlist, n)
-    return ampl.shape[n] * ampl.parametrization.a_of_epsilon(vals_dict[ampl.control])
+
+function evaluate(ampl::ShapedParametrizedAmplitude, args...; vals_dict=IdDict())
+    ϵ = evaluate(ampl.control, args...; vals_dict)
+    S = evaluate(ampl.shape, args...; vals_dict)
+    return S * ampl.parametrization.a_of_epsilon(ϵ)
 end
+
 
 function Base.Array(ampl::ShapedParametrizedPulseAmplitude)
     return ampl.shape .* ampl.parametrization.a_of_epsilon.(ampl.control)
 end
 
-function evalcontrols(ampl::ShapedParametrizedContinuousAmplitude, vals_dict, tlist, n)
-    # It's technically possible to determine t from (tlist, n), but maybe we
-    # shouldn't
-    error("ParametrizedAmplitude must be initialized with tlist")
-end
 
 function get_control_deriv(ampl::ParametrizedAmplitude, control)
     if control ≡ ampl.control
@@ -384,18 +384,26 @@ struct ShapedParametrizationContinuousDerivative <: ControlAmplitude
     shape
 end
 
-function evalcontrols(deriv::ParametrizationDerivative, vals_dict, _...)
-    return deriv.func(vals_dict[deriv.control])
+function evaluate(deriv::ParametrizationDerivative, args...; vals_dict=IdDict())
+    ϵ = evaluate(deriv.control, args...; vals_dict)
+    return deriv.func(ϵ)
 end
 
-function evalcontrols(deriv::ShapedParametrizationPulseDerivative, vals_dict, tlist, n)
-    return deriv.shape[n] * deriv.func(vals_dict[deriv.control])
+function evaluate(deriv::ShapedParametrizationPulseDerivative, tlist, n; vals_dict=IdDict())
+    ϵ = evaluate(deriv.control, tlist, n; vals_dict)
+    S = evaluate(deriv.shape, tlist, n; vals_dict)
+    return S * deriv.func(ϵ)
 end
 
-function evalcontrols(deriv::ShapedParametrizationContinuousDerivative, vals_dict, tlist, n)
-    # It's technically possible to determine t from (tlist, n), but maybe we
-    # shouldn't
-    error("ParametrizedAmplitude must be initialized with tlist")
+function evaluate(
+    deriv::ShapedParametrizationContinuousDerivative,
+    tlist,
+    n;
+    vals_dict=IdDict()
+)
+    ϵ = evaluate(deriv.control, tlist, n; vals_dict)
+    S = evaluate(deriv.shape, tlist, n; vals_dict)
+    return S * deriv.func(ϵ)
 end
 
 end

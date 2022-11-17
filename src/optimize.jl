@@ -1,3 +1,5 @@
+using QuantumPropagators.Controls: substitute
+
 """Optimize a quantum control problem.
 
 ```julia

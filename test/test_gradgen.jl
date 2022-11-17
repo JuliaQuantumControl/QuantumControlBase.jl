@@ -6,7 +6,7 @@ using QuantumPropagators.SpectralRange: specrange
 using QuantumControlBase: GradGenerator, GradgenOperator, GradVector, resetgradvec!
 using QuantumControlBase.TestUtils
 using Zygote
-using QuantumPropagators.Generators: evalcontrols
+using QuantumPropagators.Controls: evaluate
 
 @testset "GradgenOperator" begin
 
@@ -17,8 +17,8 @@ using QuantumPropagators.Generators: evalcontrols
     Ĥ₁ = random_complex_matrix(N, ρ)
     Ĥ₂ = random_complex_matrix(N, ρ)
     Zero = zeros(ComplexF64, N, N)
-    ϵ₁ = t -> 1.0
-    ϵ₂ = t -> 1.0
+    ϵ₁(t) = 1.0
+    ϵ₂(t) = 1.0
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     Ψ = random_state_vector(N)
     ψ_max = maximum(abs.(Ψ))
@@ -29,8 +29,8 @@ using QuantumPropagators.Generators: evalcontrols
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
 
     G̃_of_t = GradGenerator(Ĥ_of_t)
-    G̃ = evalcontrols(G̃_of_t, vals_dict)
-    Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
+    G̃ = evaluate(G̃_of_t; vals_dict)
+    Ĥ = evaluate(Ĥ_of_t; vals_dict)
 
     Û_Ψ = exp(-𝕚 * Ĥ * dt) * Ψ
 
@@ -86,12 +86,12 @@ using QuantumPropagators.Generators: evalcontrols
 
     Ψ̃_out_full = exp(-𝕚 * G̃_full * dt) * Ψ̃_full
     # propagation correct?
-    @test norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-12
+    @test norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-10
 
     # do we get the same results as from newton?
-    @test norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-12
-    @test norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-12
-    @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-12
+    @test norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-10
+    @test norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-10
+    @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-10
 
     ###########################################################################
     # Test custom expprop
@@ -108,12 +108,12 @@ using QuantumPropagators.Generators: evalcontrols
 
     Ψ̃_out_full = exp(-𝕚 * G̃_full * dt) * Ψ̃_full
     # propagation correct?
-    @test norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-12
+    @test norm(Ψ̃_out_full[2N+1:3N] - Û_Ψ) < 1e-10
 
     # do we get the same results as from newton?
-    @test norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-12
-    @test norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-12
-    @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-12
+    @test norm(Ψ̃_out_full[2N+1:3N] - Ψ̃_out.state) < 1e-10
+    @test norm(Ψ̃_out_full[1:N] - Ψ̃_out.grad_states[1]) < 1e-10
+    @test norm(Ψ̃_out_full[N+1:2N] - Ψ̃_out.grad_states[2]) < 1e-10
 
     ###########################################################################
     # Test standard expprop
@@ -203,7 +203,7 @@ using QuantumPropagators.Generators: evalcontrols
     wrk_bw = NewtonWrk(χ̃)
     Ĥ_adj_of_t = (copy(Ĥ₀'), (copy(Ĥ₁'), ϵ₁), (copy(Ĥ₂'), ϵ₂))
     G̃_adj_of_t = GradGenerator(Ĥ_adj_of_t)
-    G̃_adj = evalcontrols(G̃_adj_of_t, vals_dict)
+    G̃_adj = evaluate(G̃_adj_of_t; vals_dict)
     newton!(χ̃, G̃_adj, -dt, wrk)
     χ̃_out = copy(χ̃)
     Ψtgt_Û = χ̃_out.state
@@ -261,8 +261,8 @@ end
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
     G̃_of_t = GradGenerator(Ĥ_of_t)
-    Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
-    G̃ = evalcontrols(G̃_of_t, vals_dict)
+    Ĥ = evaluate(Ĥ_of_t; vals_dict)
+    G̃ = evaluate(G̃_of_t; vals_dict)
 
     G_expected = [
          Ĥ    Zero  Ĥ₁
@@ -314,8 +314,8 @@ end
     Ĥ_of_t = (Ĥ₀, (Ĥ₁, ϵ₁), (Ĥ₂, ϵ₂))
     vals_dict = IdDict(ϵ₁ => 1.0, ϵ₂ => 1.0)
     G̃_of_t = GradGenerator(Ĥ_of_t)
-    Ĥ = evalcontrols(Ĥ_of_t, vals_dict)
-    G̃ = evalcontrols(G̃_of_t, vals_dict)
+    Ĥ = evaluate(Ĥ_of_t; vals_dict)
+    G̃ = evaluate(G̃_of_t; vals_dict)
 
     G_expected = Array([
          Ĥ    Zero  Ĥ₁

@@ -3,6 +3,7 @@ import QuantumPropagators
 using Printf
 
 using QuantumPropagators.Generators: Generator, Operator
+import QuantumPropagators.Controls: substitute
 
 # TODO: consider using kwargs for init_prop, and document that feature.
 """Optimization objective.
@@ -97,6 +98,31 @@ function Base.getproperty(obj::Objective, name::Symbol)
     end
 end
 
+
+"""
+```julia
+objective = substitute(objective::Objective, replacements)
+objectives = substitute(objectives::Vector{Objective}, replacements)
+```
+
+recursively substitutes the `initial_state`, `generator`, and `target_state`.
+"""
+function substitute(objective::Objective, replacements)
+    initial_state = substitute(objective.initial_state, replacements)
+    ST = typeof(initial_state)
+    generator = substitute(objective.generator, replacements)
+    target_state::Union{Nothing,ST} = nothing
+    if !isnothing(objective.target_state)
+        target_state = substitute(objective.target_state, replacements)
+    end
+    weight = objective.weight
+    kwargs = getfield(objective, :kwargs)
+    return Objective(; initial_state, generator, target_state, weight, kwargs...)
+end
+
+function substitute(objectives::Vector{OT}, replacements) where {OT<:Objective}
+    return [substitute(obj, replacements) for obj ∈ objectives]
+end
 
 
 """A full control problem with multiple objectives.

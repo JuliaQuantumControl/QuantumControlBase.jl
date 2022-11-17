@@ -43,7 +43,7 @@ depend on `control`, or generator
 otherwise. For linear control terms, `μ` will be a static operator, e.g. an
 `AbstractMatrix` or an [`Operator`](@ref). For non-linear controls, `μ` will be
 time-dependent, e.g. a [`Generator`](@ref). In either case,
-[`evalcontrols`](@ref) should be used to evaluate `μ` into a constant operator
+[`evaluate`](@ref) should be used to evaluate `μ` into a constant operator
 for particular values of the controls and a particular point in time.
 
 For constant generators, e.g. an [`Operator`](@ref), the result is always
@@ -87,7 +87,7 @@ returns the derivative ``∂a_l(t)/∂ϵ_{l'}(t)`` of the given amplitude
 `1.0` or `0.0` (depending on whether `ampl ≡ control`). For non-trivial
 amplitudes, the result may be another amplitude that depends on the controls
 and potentially on time, but can be evaluated to a constant with
-[`evalcontrols`](@ref).
+[`evaluate`](@ref).
 """
 get_control_deriv(ampl::Function, control) = (ampl ≡ control) ? 1.0 : 0.0
 get_control_deriv(ampl::Vector, control) = (ampl ≡ control) ? 1.0 : 0.0

@@ -1,7 +1,7 @@
 # Extension of QuantumPropagators.propagate for control objectives.
 
 import QuantumPropagators
-using QuantumPropagators.Generators: substitute_controls
+using QuantumPropagators.Controls: substitute
 import .ConditionalThreads: @threadsif
 
 
@@ -32,7 +32,7 @@ end
 
 ```julia
 propagate_objective(obj, tlist; method=:auto, initial_state=obj.initial_state,
-                    controls_map=IdDict(), kwargs...)
+                    kwargs...)
 ```
 
 propagates `initial_state` under the dynamics described by `obj.generator`.
@@ -40,7 +40,7 @@ propagates `initial_state` under the dynamics described by `obj.generator`.
 The optional dict `control_map` may be given to replace the controls in
 `obj.generator` (as obtained by [`get_controls`](@ref)) with custom functions
 or vectors, e.g. with the controls resulting from optimization, see also
-[`substitute_controls`](@ref).
+[`substitute`](@ref).
 
 If `obj` has a property/field `prop_method` or `fw_prop_method`, its value will
 be used as the default for `method` instead of :auto. An explicit keyword
@@ -54,7 +54,6 @@ function propagate_objective(
     tlist;
     method=:auto,
     initial_state=obj.initial_state,
-    controls_map=IdDict(),
     kwargs...
 )
     if method == :auto
@@ -64,10 +63,9 @@ function propagate_objective(
             end
         end
     end
-    generator = substitute_controls(obj.generator, controls_map)
     return QuantumPropagators.propagate(
         initial_state,
-        generator,
+        obj.generator,
         tlist,
         Val(method);
         kwargs...

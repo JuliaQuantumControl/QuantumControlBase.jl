@@ -31,8 +31,8 @@ function QuantumControlBase.get_control_deriv(a::MySquareAmpl, control)
 end
 
 
-function QuantumPropagators.Generators.evalcontrols(a::MyScaledAmpl, vals_dict, args...)
-    return a.c * evalcontrols(a.control, vals_dict, args...)
+function QuantumPropagators.Controls.evaluate(a::MyScaledAmpl, args...; vals_dict=IdDict())
+    return a.c * evaluate(a.control, args...; vals_dict)
 end
 
 
@@ -57,7 +57,7 @@ end
     @test norm(derivs[2] - H₂) < 1e-14
 
     for deriv in derivs
-        O = evalcontrols(deriv, IdDict(ϵ₁ => 1.1, ϵ₂ => 2.0))
+        O = evaluate(deriv; vals_dict=IdDict(ϵ₁ => 1.1, ϵ₂ => 2.0))
         @test O ≡ deriv
     end
 
@@ -81,13 +81,13 @@ end
     @test derivs[1].ops[1] ≡ H₁
     @test _AT(derivs[1]) ≡ MyScaledAmpl
 
-    O₁ = evalcontrols(derivs[1], IdDict(ϵ₁ => 1.1, ϵ₂ => 2.0))
+    O₁ = evaluate(derivs[1]; vals_dict=IdDict(ϵ₁ => 1.1, ϵ₂ => 2.0))
     @test O₁ isa Operator
     @test length(O₁.ops) == length(O₁.coeffs) == 1
     @test O₁.ops[1] ≡ H₁
     @test O₁.coeffs[1] ≈ (2 * 1.1)
 
-    O₂ = evalcontrols(derivs[2], IdDict(ϵ₁ => 1.1, ϵ₂ => 2.0))
+    O₂ = evaluate(derivs[2]; vals_dict=IdDict(ϵ₁ => 1.1, ϵ₂ => 2.0))
     @test O₂ isa Operator
     @test length(O₂.ops) == length(O₂.coeffs) == 1
     @test O₂.ops[1] ≡ H₂
