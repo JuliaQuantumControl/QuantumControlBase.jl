@@ -65,20 +65,6 @@ struct GradgenOperator{num_controls,GT,CGT}
     control_deriv_ops::Vector{CGT}
 end
 
-# Dummy initializer: this creates a GradgenOperator that fits a
-# GradGenerator structurally
-function GradgenOperator(gradgen::GradGenerator)
-    dummy_vals = IdDict(control => 1.0 for control in gradgen.controls)
-    dummy_tlist = [0.0, 1.0]
-    G = evaluate(gradgen.G, dummy_tlist, 1; vals_dict=dummy_vals)
-    control_deriv_ops =
-        [evaluate(μ, dummy_tlist, 1; vals_dict=dummy_vals) for μ in gradgen.control_derivs]
-    num_controls = length(control_deriv_ops)
-    GT = typeof(G)
-    CGT = eltype(control_deriv_ops)
-    GradgenOperator{num_controls,GT,CGT}(G, control_deriv_ops)
-end
-
 
 function get_controls(gradgen::GradGenerator)
     return get_controls(gradgen.G)
@@ -108,8 +94,12 @@ end
 
 
 function evaluate(gradgen::GradGenerator, args...; vals_dict=IdDict())
-    G = GradgenOperator(gradgen)
-    evaluate!(G, gradgen, args...; vals_dict)
+    G = evaluate(gradgen.G, args...; vals_dict)
+    control_deriv_ops = [evaluate(μ, args...; vals_dict) for μ ∈ gradgen.control_derivs]
+    num_controls = length(control_deriv_ops)
+    GT = typeof(G)
+    CGT = eltype(control_deriv_ops)
+    GradgenOperator{num_controls,GT,CGT}(G, control_deriv_ops)
 end
 
 
