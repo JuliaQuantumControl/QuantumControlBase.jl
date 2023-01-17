@@ -573,6 +573,7 @@ function make_automatic_chi(
             ∇J = Zygote.gradient(_J_T, ϕ...)
         end
         for (k, ∇Jₖ) ∈ enumerate(∇J)
+            ∇Jₖ = convert(typeof(χ[k]), ∇Jₖ)
             # |χₖ⟩ = ½ |∇Jₖ⟩  # ½ corrects for gradient vs Wirtinger deriv
             axpby!(0.5, ∇Jₖ, false, χ[k])
         end
