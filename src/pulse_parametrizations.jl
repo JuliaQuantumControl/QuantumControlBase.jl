@@ -10,6 +10,9 @@ export SquareParametrization,
 using QuantumPropagators.Controls: discretize_on_midpoints
 using QuantumPropagators.Amplitudes: ControlAmplitude, ShapedAmplitude
 
+import QuantumPropagators.Controls: evaluate
+import ..get_control_deriv
+
 
 #! format: off
 
