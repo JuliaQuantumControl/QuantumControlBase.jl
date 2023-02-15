@@ -1,7 +1,7 @@
 using Test
 
 using QuantumControlBase
-using QuantumControlBase.TestUtils
+using QuantumControlTestUtils.DummyOptimization: dummy_control_problem
 
 @testset "dummy optimization" begin
 

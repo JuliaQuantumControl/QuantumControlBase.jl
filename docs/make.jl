@@ -28,11 +28,7 @@ makedocs(;
         assets=String[],
         footer="[$NAME.jl]($GITHUB) v$VERSION docs powered by [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl)."
     ),
-    pages=[
-        "Home" => "index.md",
-        hide("QuantumPropagators" => "quantumpropagators.md"),
-        "History" => "history.md",
-    ]
+    pages=["Home" => "index.md", hide("QuantumPropagators" => "quantumpropagators.md"),]
 )
 
 println("Finished makedocs")

@@ -5,7 +5,7 @@ using QuantumPropagators
 using QuantumPropagators.Generators
 using QuantumPropagators.Controls
 using QuantumPropagators: Generator, Operator
-using QuantumControlBase.TestUtils: random_hermitian_matrix
+using QuantumControlTestUtils.RandomObjects: random_matrix
 
 
 _AT(::Generator{OT,AT}) where {OT,AT} = AT
@@ -37,9 +37,9 @@ end
 
 
 @testset "Standard get_control_derivs" begin
-    H₀ = random_hermitian_matrix(5, 1.0)
-    H₁ = random_hermitian_matrix(5, 1.0)
-    H₂ = random_hermitian_matrix(5, 1.0)
+    H₀ = random_matrix(5; hermitian=true)
+    H₁ = random_matrix(5; hermitian=true)
+    H₂ = random_matrix(5; hermitian=true)
     ϵ₁ = t -> 1.0
     ϵ₂ = t -> 1.0
     H = (H₀, (H₁, ϵ₁), (H₂, ϵ₂))
@@ -68,9 +68,9 @@ end
 
 @testset "Nonlinear get_control_derivs" begin
 
-    H₀ = random_hermitian_matrix(5, 1.0)
-    H₁ = random_hermitian_matrix(5, 1.0)
-    H₂ = random_hermitian_matrix(5, 1.0)
+    H₀ = random_matrix(5; hermitian=true)
+    H₁ = random_matrix(5; hermitian=true)
+    H₂ = random_matrix(5; hermitian=true)
     ϵ₁ = t -> 1.0
     ϵ₂ = t -> 1.0
     H = (H₀, (H₁, MySquareAmpl(ϵ₁)), (H₂, MySquareAmpl(ϵ₂)))

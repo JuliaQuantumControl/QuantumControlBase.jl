@@ -1,4 +1,4 @@
-using QuantumPropagators.Generators: Generator, Operator, _make_generator
+using QuantumPropagators.Generators: Generator, Operator, _make_generator, evaluate
 using QuantumPropagators.Amplitudes: LockedAmplitude, ShapedAmplitude
 
 

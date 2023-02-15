@@ -1,6 +1,6 @@
 using Test
-using QuantumControlBase
-import QuantumControlBase: optimize
+import QuantumControlBase
+using QuantumControl: ControlProblem, Objective
 
 @testset "optimize-kwargs" begin
 

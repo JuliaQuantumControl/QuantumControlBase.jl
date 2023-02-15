@@ -1,7 +1,8 @@
 using Test
 using LinearAlgebra
-using QuantumControlBase.TestUtils
 using QuantumControlBase: Objective
+using QuantumControlTestUtils.DummyOptimization: dummy_control_problem
+
 
 @testset "Sparse objective adjoint" begin
 
@@ -18,7 +19,7 @@ end
 
 @testset "Dense objective adjoint" begin
 
-    obj = dummy_control_problem(sparsity=1.0).objectives[1]
+    obj = dummy_control_problem(density=1.0).objectives[1]
     adj = adjoint(obj)
 
     @test norm(adj.initial_state - obj.initial_state) ≈ 0

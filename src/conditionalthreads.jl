@@ -1,5 +1,3 @@
-module ConditionalThreads
-
 using Base.Threads
 using Base.Threads: threadid, threading_run
 
@@ -12,7 +10,7 @@ packages building on `QuantumControlBase`.
 Usage:
 
 ```julia
-using QuantumControlBase.ConditionalThreads: @threadsif
+using QuantumControlBase: @threadsif
 
 function optimize(objectives; use_threads=true)
     @threadsif use_threads for k = 1:length(objectives)
@@ -35,6 +33,4 @@ macro threadsif(cond, loop)
             $(esc(loop))
         end
     end
-end
-
 end

@@ -158,6 +158,13 @@ struct ControlProblem
     kwargs::Dict{Symbol,Any}
     function ControlProblem(; objectives, tlist, kwargs...)
         kwargs_dict = Dict{Symbol,Any}(kwargs)  # make the kwargs mutable
+        if :info_hook in keys(kwargs_dict)
+            info_hook = kwargs_dict[:info_hook]
+            if info_hook isa Union{Tuple,Vector}
+                @debug "Implicitly combining info_hooks with chain_infohooks"
+                kwargs_dict[:info_hook] = chain_infohooks(info_hook...)
+            end
+        end
         new(objectives, tlist, kwargs_dict)
     end
 end

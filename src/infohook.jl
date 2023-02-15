@@ -22,6 +22,12 @@ parameters. This allows for the infohooks in the chain to communicate.
 
 The chain will return the final combined result tuple, or `nothing` if all
 `funcs` return `nothing`.
+
+!!! note
+
+    When instantiating a [`ControlProblem`](@ref), any `info_hook` that is a
+    tuple will be automatically processed with `chain_infohooks`. Thus,
+    `chain_infohooks` rarely has to be invoked manually.
 """
 function chain_infohooks(funcs...)
 

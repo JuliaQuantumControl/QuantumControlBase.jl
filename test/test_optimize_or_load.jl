@@ -1,7 +1,8 @@
 using Test
 
 using QuantumControlBase
-using QuantumControlBase.TestUtils
+using QuantumControlTestUtils.DummyOptimization:
+    dummy_control_problem, DummyOptimizationResult
 
 @testset "metadata" begin
 
@@ -19,7 +20,7 @@ using QuantumControlBase.TestUtils
     @test result.converged
     @test isfile(outfile)
     result_load, metadata = load_optimization(outfile; return_metadata=true)
-    @test result_load isa QuantumControlBase.TestUtils.DummyOptimizationResult
+    @test result_load isa DummyOptimizationResult
     @test result_load.message == "Reached maximum number of iterations"
     @test metadata["testset"] == "metadata"
     @test metadata["method"] == :dummymethod

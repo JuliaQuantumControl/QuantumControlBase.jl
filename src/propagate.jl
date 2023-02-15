@@ -1,8 +1,8 @@
 # Extension of QuantumPropagators.propagate for control objectives.
 
 import QuantumPropagators
-using QuantumPropagators.Controls: substitute
-import .ConditionalThreads: @threadsif
+using QuantumPropagators.Controls: substitute, get_controls
+# from conditionalthreads.jl: @threadsif
 
 
 # Internal method for getting a propagation method from one or more keyword
