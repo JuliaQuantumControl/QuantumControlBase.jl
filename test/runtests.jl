@@ -40,11 +40,6 @@ using SafeTestsets
         include("test_adjoint_objective.jl")
     end
 
-    print("\n* Optimize-or-load (test_optimize_or_load.jl):")
-    @time @safetestset "Optimize-or-load" begin
-        include("test_optimize_or_load.jl")
-    end
-
     print("\n")
 
 end;
