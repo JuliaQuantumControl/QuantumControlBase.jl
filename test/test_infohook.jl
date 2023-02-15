@@ -1,5 +1,5 @@
 using Test
-using QuantumControlBase
+using QuantumControlBase: chain_infohooks
 
 @testset "chain_infohooks" begin
 
