@@ -12,13 +12,16 @@ using QuantumControl.Functionals:
 using QuantumControlTestUtils.DummyOptimization: dummy_control_problem
 using QuantumControlTestUtils.RandomObjects: random_state_vector
 using GRAPE: GrapeWrk
+using StableRNGs: StableRNG
 
 
 N_HILBERT = 10
 N = 4
 L = 2
 N_T = 50
-PROBLEM = dummy_control_problem(; N=N_HILBERT, n_objectives=N, n_controls=L, n_steps=N_T)
+RNG = StableRNG(4290326946)
+PROBLEM =
+    dummy_control_problem(; N=N_HILBERT, n_objectives=N, n_controls=L, n_steps=N_T, rng=RNG)
 
 
 @testset "make-chi" begin
@@ -33,7 +36,7 @@ PROBLEM = dummy_control_problem(; N=N_HILBERT, n_objectives=N, n_controls=L, n_s
     χ4 = [similar(obj.initial_state) for obj in objectives]
     χ5 = [similar(obj.initial_state) for obj in objectives]
     χ6 = [similar(obj.initial_state) for obj in objectives]
-    ϕ = [random_state_vector(N_HILBERT) for k = 1:N]
+    ϕ = [random_state_vector(N_HILBERT; rng=RNG) for k = 1:N]
     τ = [obj.target_state ⋅ ϕ[k] for (k, obj) in enumerate(objectives)]
 
     for functional in (J_T_sm, J_T_re, J_T_ss)
