@@ -1,5 +1,6 @@
 using QuantumControlBase
 using QuantumPropagators
+using QuantumControl
 using Documenter
 using Pkg
 
@@ -21,14 +22,13 @@ println("Starting makedocs")
 makedocs(;
     authors=AUTHORS,
     sitename="QuantumControlBase.jl",
-    modules=[QuantumControlBase],
     format=Documenter.HTML(;
         prettyurls=true,
         canonical="https://juliaquantumcontrol.github.io/QuantumControlBase.jl",
         assets=String[],
         footer="[$NAME.jl]($GITHUB) v$VERSION docs powered by [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl)."
     ),
-    pages=["Home" => "index.md", hide("QuantumPropagators" => "quantumpropagators.md"),]
+    pages=["Home" => "index.md"]
 )
 
 println("Finished makedocs")

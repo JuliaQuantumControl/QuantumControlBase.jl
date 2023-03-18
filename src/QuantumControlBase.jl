@@ -4,6 +4,7 @@ module QuantumControlBase
 # QuantumControl
 export ControlProblem, Objective, optimize, propagate_objective, propagate_objectives
 
+include("atexit.jl")
 include("conditionalthreads.jl")
 include("objectives.jl")
 include("propagate.jl")

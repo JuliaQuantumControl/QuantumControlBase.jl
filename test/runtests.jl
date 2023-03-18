@@ -35,6 +35,11 @@ using SafeTestsets
         include("test_dummy_optimization.jl")
     end
 
+    print("\n* Atexit dumps (test_atexit.jl):")
+    @time @safetestset "Atexit dumps" begin
+        include("test_atexit.jl")
+    end
+
     print("\n* Adjoint Objectives (test_adjoint_objective.jl):")
     @time @safetestset "Adjoint Objectives" begin
         include("test_adjoint_objective.jl")
