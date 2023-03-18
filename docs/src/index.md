@@ -1,7 +1,3 @@
-```@meta
-CurrentModule = QuantumControlBase
-```
-
 # QuantumControlBase
 
 The [QuantumControlBase](https://github.com/JuliaQuantumControl/QuantumControlBase.jl) package provides methods the are useful to multiple packages within the [JuliaQuantumControl](https://github.com/juliaquantumcontrol) organization.
