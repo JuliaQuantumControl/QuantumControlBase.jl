@@ -5,7 +5,8 @@ using QuantumPropagators
 using QuantumPropagators.Generators
 using QuantumPropagators.Controls
 using QuantumPropagators: Generator, Operator
-using QuantumControlTestUtils.RandomObjects: random_matrix
+using QuantumControlTestUtils.RandomObjects: random_matrix, random_state_vector
+using QuantumControl.Interfaces: check_generator, check_amplitude
 
 
 _AT(::Generator{OT,AT}) where {OT,AT} = AT
@@ -28,6 +29,17 @@ function QuantumControlBase.get_control_deriv(a::MySquareAmpl, control)
     else
         return 0.0
     end
+end
+
+
+QuantumPropagators.Controls.get_controls(a::MySquareAmpl) = (a.control,)
+
+QuantumPropagators.Controls.get_controls(a::MyScaledAmpl) = (a.control,)
+
+
+function QuantumPropagators.Controls.evaluate(a::MySquareAmpl, args...; kwargs...)
+    v = evaluate(a.control, args...; kwargs...)
+    return v^2
 end
 
 
@@ -63,6 +75,10 @@ end
 
     @test isnothing(get_control_deriv(H, t -> 3.0))
 
+    Ψ = random_state_vector(5)
+    tlist = collect(range(0, 10; length=101))
+    @test check_generator(H; state=Ψ, tlist, for_gradient_optimization=true)
+
 end
 
 
@@ -94,5 +110,11 @@ end
     @test O₂.coeffs[1] ≈ (2 * 2.0)
 
     @test isnothing(get_control_deriv(H, t -> 3.0))
+
+    Ψ = random_state_vector(5)
+    tlist = collect(range(0, 10; length=101))
+    @test check_amplitude(H[2][2]; tlist)
+    @test check_amplitude(H[3][2]; tlist)
+    @test check_generator(H; state=Ψ, tlist, for_gradient_optimization=true)
 
 end
