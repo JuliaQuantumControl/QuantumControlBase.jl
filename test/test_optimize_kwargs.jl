@@ -28,11 +28,17 @@ using QuantumControl: ControlProblem, Objective
         flag=false
     )
 
-    res = QuantumControlBase.optimize(problem; method=:kwargstest)
+    res = QuantumControlBase.optimize(problem; method=:kwargstest, check=false)
     @test res.iter_stop == 2
     @test !res.flag
 
-    res2 = QuantumControlBase.optimize(problem; method=:kwargstest, iter_stop=10, flag=true)
+    res2 = QuantumControlBase.optimize(
+        problem;
+        method=:kwargstest,
+        iter_stop=10,
+        flag=true,
+        check=false
+    )
     @test res2.iter_stop == 10
     @test res2.flag
     @test problem.kwargs[:iter_stop] == 2
