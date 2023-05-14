@@ -1,5 +1,7 @@
 using QuantumPropagators.Controls: substitute
-using QuantumPropagators.Interfaces: check_state, check_generator
+using QuantumPropagators.Interfaces: check_state
+# from ./check_generator.jl: check_generator
+
 
 """Optimize a quantum control problem.
 
@@ -43,7 +45,6 @@ function optimize(
             if !check_state(obj.initial_state; for_immutable_state, for_mutable_state)
                 error("The `initial_state` of objective $i is not valid")
             end
-            # TODO: call the QuantumControl check_generator
             if !check_generator(
                 obj.generator;
                 state=obj.initial_state,

@@ -45,6 +45,11 @@ using SafeTestsets
         include("test_adjoint_objective.jl")
     end
 
+    print("\n* Invalid interfaces (test_invalid_interfaces.jl):")
+    @time @safetestset "Invalid interfaces" begin
+        include("test_invalid_interfaces.jl")
+    end
+
     print("\n")
 
 end;
