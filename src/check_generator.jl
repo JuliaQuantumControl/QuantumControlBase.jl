@@ -1,7 +1,7 @@
 using QuantumPropagators
 using QuantumPropagators.Generators: Generator
 using QuantumPropagators.Controls: get_controls
-# from ./derivs.jl:  get_control_derivs, get_control_derivs
+# from ./derivs.jl:  get_control_derivs, get_control_deriv
 
 
 """Check the dynamical `generator` in the context of optimal control.
@@ -19,22 +19,20 @@ following conditions must be met.
 
 If `for_gradient_optimization`:
 
-* `get_control_derivs(generator, controls)` must be defined and return a vector
-  containing the result of `get_control_deriv(generator, control)` for every
+* [`get_control_derivs(generator, controls)`](@ref get_control_derivs) must be
+  defined and return a vector containing the result of
+  [`get_control_deriv(generator, control)`](@ref get_control_deriv) for every
   `control` in `controls`.
-* `get_control_deriv(generator, control)` must return an object that passes the
-  simpler [`QuantumPropagators.Interfaces.check_generator`](@ref) if `control`
-  is in `get_controls(generator)`.
-* `get_control_deriv(generator, control)` must return `nothing` if `control` is
-  not in `get_controls(generator)`
-* If `generator` is a [`Generator`](@ref) instance, for every `ampl` in
-  `generator.amplitudes`, a function `get_control_deriv(ampl, control)` must be
-  defined
-* If `ampl` does not depend on `control`, the function `get_control_deriv(ampl,
-  control)` must return `0.0`
-* Otherwise, `get_control_deriv(ampl, control)` must return an object `u` so
-  that `evaluate(u, tlist, n)` returns a Number. In most cases, `u` itself will
-  be a Number.
+* [`get_control_deriv(generator, control)`](@ref get_control_deriv) must return
+  an object that passes the less restrictive
+  [`QuantumPropagators.Interfaces.check_generator`](@ref) if `control` is in
+  `get_controls(generator)`.
+* [`get_control_deriv(generator, control)`](@ref get_control_deriv) must return
+  `nothing` if `control` is not in
+  [`get_controls(generator)`](@ref get_controls)
+* If `generator` is a [`Generator`](@ref) instance, every `ampl` in
+  `generator.amplitudes` must pass [`check_amplitude(ampl; tlist)`](@ref
+  check_amplitude).
 """
 function check_generator(
     generator;
@@ -54,8 +52,10 @@ function check_generator(
         for_mutable_state,
         for_immutable_state,
         for_expval,
-        atol
+        atol,
+        _check_amplitudes=false  # amplitudes are checked separately
     )
+    success || (return false)
 
     if for_gradient_optimization
 
@@ -117,31 +117,8 @@ function check_generator(
         end
 
         if generator isa Generator
-            controls = get_controls(generator)
-            dummy_control_aSQeB(t) = rand()
-            @assert dummy_control_aSQeB ∉ controls
             for (i, ampl) in enumerate(generator.amplitudes)
-                for (j, control) in enumerate(controls)
-                    try
-                        deriv = get_control_deriv(ampl, control)
-                        val = evaluate(deriv, tlist, 1)
-                        if !(val isa Number)
-                            @error "get_control_deriv(ampl, control) for amplitude $i and control $j must return an object that evaluate to a Number, not $(typeof(val))"
-                            success = false
-                        end
-                    catch exc
-                        @error "get_control_deriv(ampl, control) must be defined for amplitude $i and control $j"
-                        success = false
-                    end
-                end
-                try
-                    deriv = get_control_deriv(ampl, dummy_control_aSQeB)
-                    if deriv ≠ 0.0
-                        @error "get_control_deriv(ampl, control) for amplitude $i must return 0.0 if it does not depend on `control`, not $(repr(deriv))"
-                        success = false
-                    end
-                catch exc
-                    @error "get_control_deriv(ampl, control) must be defined for amplitude $i"
+                if !check_amplitude(ampl; tlist, for_gradient_optimization)
                     success = false
                 end
             end

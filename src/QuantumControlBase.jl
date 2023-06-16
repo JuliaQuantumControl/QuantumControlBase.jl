@@ -11,6 +11,7 @@ include("propagate.jl")
 include("derivs.jl")
 include("functionals.jl")
 include("infohook.jl")
+include("check_amplitude.jl")
 include("check_generator.jl")
 include("optimize.jl")
 

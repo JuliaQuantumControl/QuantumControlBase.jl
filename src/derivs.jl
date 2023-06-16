@@ -34,7 +34,7 @@ Get the derivative of the generator ``G`` w.r.t. the control ``ϵ(t)``.
 ```
 
 returns `nothing` if the `generator` (Hamiltonian or Liouvillian) does not
-depend on `control`, or generator
+depend on `control`, or a generator
 
 ```math
 μ = \frac{∂G}{∂ϵ(t)}
