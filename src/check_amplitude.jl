@@ -7,7 +7,9 @@ using QuantumPropagators.Controls: get_controls
 Check an amplitude in a [`Generator`](@ref) in the context of optimal control.
 
 ```
-@test check_amplitude(ampl; tlist, for_gradient_optimization=true)
+@test check_amplitude(
+    ampl; tlist, for_gradient_optimization=true, quiet=false
+)
 ```
 
 verifies that the given `ampl` is a valid element in the list of `amplitudes`
@@ -25,10 +27,22 @@ If `for_gradient_optimization`:
   [`get_control_deriv(ampl, control)`](@ref get_control_deriv) must return an
   object `u` so that `evaluate(u, tlist, n)` returns a Number. In most cases,
   `u` itself will be a Number.
-"""
-function check_amplitude(ampl; tlist, for_gradient_optimization=true)
 
-    success = QuantumPropagators.Interfaces.check_amplitude(ampl; tlist)
+The function returns `true` for a valid amplitude and `false` for an invalid
+amplitude. Unless `quiet=true`, it will log an error to indicate which of the
+conditions failed.
+"""
+function check_amplitude(
+    ampl;
+    tlist,
+    for_gradient_optimization=true,
+    quiet=false,
+    _message_prefix=""  # for recursive calling
+)
+
+    px = _message_prefix
+    success =
+        QuantumPropagators.Interfaces.check_amplitude(ampl; tlist, quiet, _message_prefix)
     success || (return false)
 
     if for_gradient_optimization
@@ -40,11 +54,13 @@ function check_amplitude(ampl; tlist, for_gradient_optimization=true)
                 deriv = get_control_deriv(ampl, control)
                 val = evaluate(deriv, tlist, 1)
                 if !(val isa Number)
-                    @error "get_control_deriv(ampl, control) for  control $j must return an object that evaluates to a Number, not $(typeof(val))"
+                    quiet ||
+                        @error "$(px)get_control_deriv(ampl, control) for  control $j must return an object that evaluates to a Number, not $(typeof(val))"
                     success = false
                 end
             catch exc
-                @error "get_control_deriv(ampl, control) must be defined for control $j: $exc"
+                quiet ||
+                    @error "$(px)get_control_deriv(ampl, control) must be defined for control $j: $exc"
                 success = false
             end
         end
@@ -52,11 +68,12 @@ function check_amplitude(ampl; tlist, for_gradient_optimization=true)
         try
             deriv = get_control_deriv(ampl, dummy_control_aSQeB)
             if deriv ≠ 0.0
-                @error "get_control_deriv(ampl, control) must return 0.0 if it does not depend on `control`, not $(repr(deriv))"
+                quiet ||
+                    @error "$(px)get_control_deriv(ampl, control) must return 0.0 if it does not depend on `control`, not $(repr(deriv))"
                 success = false
             end
         catch exc
-            @error "get_control_deriv(ampl, control) must be defined: $exc"
+            quiet || @error "$(px)get_control_deriv(ampl, control) must be defined: $exc"
             success = false
         end
 

@@ -10,7 +10,7 @@ using QuantumPropagators.Controls: get_controls
 @test check_generator(generator; state, tlist,
                      for_mutable_state=true, for_immutable_state=true,
                      for_expval=true, for_gradient_optimization=true,
-                     atol=1e-15)
+                     atol=1e-15, quiet=false)
 ```
 
 verifies the given `generator`. This checks all the conditions of
@@ -33,6 +33,10 @@ If `for_gradient_optimization`:
 * If `generator` is a [`Generator`](@ref) instance, every `ampl` in
   `generator.amplitudes` must pass [`check_amplitude(ampl; tlist)`](@ref
   check_amplitude).
+
+The function returns `true` for a valid generator and `false` for an invalid
+generator. Unless `quiet=true`, it will log an error to indicate which of the
+conditions failed.
 """
 function check_generator(
     generator;
@@ -42,8 +46,12 @@ function check_generator(
     for_immutable_state=true,
     for_expval=true,
     for_gradient_optimization=true,
-    atol=1e-15
+    atol=1e-15,
+    quiet=false,
+    _message_prefix=""  # for recursive calling
 )
+
+    px = _message_prefix
 
     success = QuantumPropagators.Interfaces.check_generator(
         generator;
@@ -53,6 +61,8 @@ function check_generator(
         for_immutable_state,
         for_expval,
         atol,
+        quiet,
+        _message_prefix,
         _check_amplitudes=false  # amplitudes are checked separately
     )
     success || (return false)
@@ -63,18 +73,21 @@ function check_generator(
             controls = get_controls(generator)
             control_derivs = get_control_derivs(generator, controls)
             if !(control_derivs isa Vector)
-                @error "`get_control_derivs(generator, controls)` must return a Vector"
+                quiet ||
+                    @error "$(px)`get_control_derivs(generator, controls)` must return a Vector"
                 success = false
             end
             if length(control_derivs) ≠ length(controls)
-                @error "`get_control_derivs(generator, controls)` must return a derivative for every `control` in `controls`"
+                quiet ||
+                    @error "$(px)`get_control_derivs(generator, controls)` must return a derivative for every `control` in `controls`"
                 success = false
             end
             # In general, we can't check for equality between
             # `get_control_deriv` and `get_control_deriv`, because `==` may not
             # be implemented to compare arbitrary generators by value
         catch exc
-            @error "`get_control_derivs(generator, controls)` must be defined: $exc"
+            quiet ||
+                @error "$(px)`get_control_derivs(generator, controls)` must be defined: $exc"
             success = false
         end
 
@@ -90,15 +103,19 @@ function check_generator(
                     for_immutable_state,
                     for_expval,
                     atol,
+                    quiet,
+                    _message_prefix="On `deriv = get_control_deriv(generator, control)` of type $(typeof(deriv)) for control $i: ",
                     for_gradient_optimization=false
                 )
                 if !valid_deriv
-                    @error "the result of `get_control_deriv(generator, control)` for control $i is not a valid generator"
+                    quiet ||
+                        @error "$(px)the result of `get_control_deriv(generator, control)` for control $i is not a valid generator"
                     success = false
                 end
             end
         catch exc
-            @error "`get_control_deriv(generator, control)` must be defined: $exc"
+            quiet ||
+                @error "$(px)`get_control_deriv(generator, control)` must be defined: $exc"
             success = false
         end
 
@@ -108,17 +125,28 @@ function check_generator(
             @assert dummy_control_CYRmE ∉ controls
             deriv = get_control_deriv(generator, dummy_control_CYRmE)
             if deriv ≢ nothing
-                @error "`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`, not $(repr(deriv))"
+                quiet ||
+                    @error "$(px)`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`, not $(repr(deriv))"
                 success = false
             end
         catch exc
-            @error "`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`: $exc"
+            quiet ||
+                @error "$(px)`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`: $exc"
             success = false
         end
 
         if generator isa Generator
             for (i, ampl) in enumerate(generator.amplitudes)
-                if !check_amplitude(ampl; tlist, for_gradient_optimization)
+                valid_ampl = check_amplitude(
+                    ampl;
+                    tlist,
+                    for_gradient_optimization,
+                    quiet,
+                    _message_prefix="On ampl $i ($(typeof(ampl))) in `generator`: "
+                )
+                if !valid_ampl
+                    quiet ||
+                        @error "$(px)amplitude $i in `generator` does not pass `check_amplitude`"
                     success = false
                 end
             end
