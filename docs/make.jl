@@ -22,13 +22,14 @@ println("Starting makedocs")
 makedocs(;
     authors=AUTHORS,
     sitename="QuantumControlBase.jl",
+    warnonly=true,
     format=Documenter.HTML(;
         prettyurls=true,
         canonical="https://juliaquantumcontrol.github.io/QuantumControlBase.jl",
         assets=String[],
         footer="[$NAME.jl]($GITHUB) v$VERSION docs powered by [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl)."
     ),
-    pages=["Home" => "index.md"]
+    pages=["Home" => "index.md"],
 )
 
 println("Finished makedocs")
