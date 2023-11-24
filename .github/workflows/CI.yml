@@ -12,11 +12,6 @@ on:
 env:
   GKSwstype: 100
   JULIA_PKG_PRECOMPILE_AUTO: false
-concurrency:
-  # Skip intermediate builds: always.
-  # Cancel intermediate builds: only if it is a pull request build.
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 jobs:
   test:
     name: Test ${{ matrix.title }}
@@ -57,7 +52,7 @@ jobs:
       - run: |
           # Summarize coverage
           julia --project=test -e 'using QuantumControlTestUtils; show_coverage();'
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
         with:
           files: lcov.info
   docs:
