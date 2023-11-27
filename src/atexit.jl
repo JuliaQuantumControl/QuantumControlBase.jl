@@ -8,7 +8,7 @@ A long-running optimization routine may use
 ```julia
 if !isnothing(atexit_filename)
     set_atexit_save_optimization(
-        atexit_filename, result; msg_property=:messsage, msg="Abort: ATEXIT"
+        atexit_filename, result; msg_property=:message, msg="Abort: ATEXIT"
     )
     # ...
     popfirst!(Base.atexit_hooks)  # remove callback
@@ -43,7 +43,7 @@ The resulting JLD2 file is compatible with `QuantumControl.load_optimization`.
 function set_atexit_save_optimization(
     filename,
     result;
-    msg_property=:messsage,
+    msg_property=:message,
     msg="Abort: ATEXIT"
 )
 

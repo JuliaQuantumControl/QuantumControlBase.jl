@@ -24,15 +24,24 @@ function get_objective_prop_method(obj, symbols...; kwargs...)
             return Symbol(getproperty(obj, symbol))
         end
     end
-    return :auto
+    throw(
+        ArgumentError(
+            "No propagation method from keywords $(repr(symbols)) of Objective with properties $(propertynames(obj)) or in optimization keyword arguments $(keys(kwargs))"
+        )
+    )
 end
 
 
 """Propagate with the dynamical generator of a control objective.
 
 ```julia
-propagate_objective(obj, tlist; method=:auto, initial_state=obj.initial_state,
-                    kwargs...)
+propagate_objective(
+    obj,
+    tlist;
+    method,  # mandatory keyword argument
+    initial_state=obj.initial_state,
+    kwargs...
+)
 ```
 
 propagates `initial_state` under the dynamics described by `obj.generator`.
@@ -44,25 +53,14 @@ argument for `method` always overrides the default.
 All other `kwargs` are forwarded to the underlying
 [`QuantumPropagators.propagate`](@ref) method for `obj.initial_state`.
 """
-function propagate_objective(
-    obj,
-    tlist;
-    method=:auto,
-    initial_state=obj.initial_state,
-    kwargs...
-)
-    if method == :auto
-        for symbol ∈ (:prop_method, :fw_prop_method)
-            if symbol ∈ propertynames(obj)
-                method = Symbol(getproperty(obj, symbol))
-            end
-        end
-    end
+function propagate_objective(obj, tlist; method, initial_state=obj.initial_state, kwargs...)
+    # TODO: get propagation method (and other options) from the properties of
+    # `obj`.
     return QuantumPropagators.propagate(
         initial_state,
         obj.generator,
-        tlist,
-        Val(method);
+        tlist;
+        method,
         kwargs...
     )
 end

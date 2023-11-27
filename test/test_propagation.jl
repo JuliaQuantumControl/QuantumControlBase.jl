@@ -1,5 +1,6 @@
 using Test
 using QuantumPropagators
+using QuantumPropagators: ExpProp
 using QuantumControlBase
 using QuantumPropagators.Shapes: flattop
 using UnicodePlots
@@ -39,7 +40,8 @@ using UnicodePlots
 
     tlist = collect(range(0, 5, length=500))
 
-    states = propagate(obj.initial_state, obj.generator, tlist, storage=true)
+    states =
+        propagate(obj.initial_state, obj.generator, tlist, storage=true, method=ExpProp)
 
     pops = abs.(states) .^ 2
     pop0 = pops[1, :]

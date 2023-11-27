@@ -5,7 +5,7 @@ using QuantumControl: ControlProblem, Objective
 @testset "optimize-kwargs" begin
 
     # test that we can call optimize with kwargs that override the kwargs of
-    # the `problem` without permantly changing `problem`
+    # the `problem` without permanently changing `problem`
 
 
     struct Result
