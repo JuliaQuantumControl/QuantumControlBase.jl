@@ -1,6 +1,7 @@
 using QuantumPropagators
 using QuantumPropagators.Generators: Generator
 using QuantumPropagators.Controls: get_controls
+using QuantumPropagators.Interfaces: catch_abbreviated_backtrace
 # from ./derivs.jl:  get_control_derivs, get_control_deriv
 
 
@@ -86,8 +87,10 @@ function check_generator(
             # `get_control_deriv` and `get_control_deriv`, because `==` may not
             # be implemented to compare arbitrary generators by value
         catch exc
-            quiet ||
-                @error "$(px)`get_control_derivs(generator, controls)` must be defined: $exc"
+            quiet || @error(
+                "$(px)`get_control_derivs(generator, controls)` must be defined.",
+                exception = (exc, catch_abbreviated_backtrace())
+            )
             success = false
         end
 
@@ -114,8 +117,10 @@ function check_generator(
                 end
             end
         catch exc
-            quiet ||
-                @error "$(px)`get_control_deriv(generator, control)` must be defined: $exc"
+            quiet || @error(
+                "$(px)`get_control_deriv(generator, control)` must be defined.",
+                exception = (exc, catch_abbreviated_backtrace())
+            )
             success = false
         end
 
@@ -130,8 +135,10 @@ function check_generator(
                 success = false
             end
         catch exc
-            quiet ||
-                @error "$(px)`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`: $exc"
+            quiet || @error(
+                "$(px)`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`.",
+                exception = (exc, catch_abbreviated_backtrace())
+            )
             success = false
         end
 

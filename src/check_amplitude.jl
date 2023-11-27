@@ -1,5 +1,6 @@
 using QuantumPropagators
 using QuantumPropagators.Controls: get_controls
+using QuantumPropagators.Interfaces: catch_abbreviated_backtrace
 # from ./derivs.jl:  get_control_deriv
 
 
@@ -59,8 +60,10 @@ function check_amplitude(
                     success = false
                 end
             catch exc
-                quiet ||
-                    @error "$(px)get_control_deriv(ampl, control) must be defined for control $j: $exc"
+                quiet || @error(
+                    "$(px)get_control_deriv(ampl, control) must be defined for control $j.",
+                    exception = (exc, catch_abbreviated_backtrace())
+                )
                 success = false
             end
         end
@@ -73,7 +76,10 @@ function check_amplitude(
                 success = false
             end
         catch exc
-            quiet || @error "$(px)get_control_deriv(ampl, control) must be defined: $exc"
+            quiet || @error(
+                "$(px)get_control_deriv(ampl, control) must be defined.",
+                exception = (exc, catch_abbreviated_backtrace())
+            )
             success = false
         end
 
