@@ -3,6 +3,7 @@ using QuantumPropagators
 using QuantumControl
 using Documenter
 using Pkg
+using DocumenterInterLinks
 
 DocMeta.setdocmeta!(
     QuantumControlBase,
@@ -26,7 +27,14 @@ makedocs(;
     format=Documenter.HTML(;
         prettyurls=true,
         canonical="https://juliaquantumcontrol.github.io/QuantumControlBase.jl",
-        assets=String[],
+        assets=[
+            asset(
+                "https://juliaquantumcontrol.github.io/QuantumControl.jl/dev/assets/topbar/topbar.css"
+            ),
+            asset(
+                "https://juliaquantumcontrol.github.io/QuantumControl.jl/dev/assets/topbar/topbar.js"
+            ),
+        ],
         footer="[$NAME.jl]($GITHUB) v$VERSION docs powered by [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl)."
     ),
     pages=["Home" => "index.md"],
