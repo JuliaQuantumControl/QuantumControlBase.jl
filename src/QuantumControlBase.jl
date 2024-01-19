@@ -2,7 +2,8 @@ module QuantumControlBase
 
 # The export here is simply to indicate which symbols should be re-exported in
 # QuantumControl
-export ControlProblem, Objective, optimize, propagate_objective, propagate_objectives
+export ControlProblem, Objective, optimize, propagate_objective
+export propagate_objectives
 
 include("atexit.jl")
 include("conditionalthreads.jl")

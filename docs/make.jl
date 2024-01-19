@@ -3,6 +3,7 @@ using QuantumPropagators
 using QuantumControl
 using Documenter
 using Pkg
+using DocumenterCitations
 using DocumenterInterLinks
 
 DocMeta.setdocmeta!(
@@ -11,6 +12,17 @@ DocMeta.setdocmeta!(
     :(using QuantumControlBase);
     recursive=true
 )
+
+links = InterLinks(
+    "TimerOutputs" => (
+        "https://github.com/KristofferC/TimerOutputs.jl",
+        joinpath(@__DIR__, "src", "inventories", "TimerOutputs.toml")
+    ),
+    "QuantumPropagators" => "https://juliaquantumcontrol.github.io/QuantumPropagators.jl/dev/",
+    "QuantumControl" => "https://juliaquantumcontrol.github.io/QuantumControl.jl/dev/",
+)
+
+bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"); style=:numeric)
 
 PROJECT_TOML = Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))
 VERSION = PROJECT_TOML["version"]
@@ -21,6 +33,7 @@ GITHUB = "https://github.com/JuliaQuantumControl/QuantumControlBase.jl"
 println("Starting makedocs")
 
 makedocs(;
+    plugins=[bib, links],
     authors=AUTHORS,
     sitename="QuantumControlBase.jl",
     warnonly=true,

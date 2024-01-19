@@ -25,3 +25,8 @@ Pages = ["index.md"]
 ```@autodocs
 Modules = [QuantumControlBase]
 ```
+
+## Bibliography
+
+```@bibliography
+```

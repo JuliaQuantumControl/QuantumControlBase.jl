@@ -1,6 +1,4 @@
 using LinearAlgebra
-using Zygote: Zygote
-using FiniteDifferences: FiniteDifferences
 
 
 # default for `via` argument of `make_chi`
@@ -19,9 +17,9 @@ end
 chi! = make_chi(
     J_T,
     objectives;
-    force_zygote=false,
+    mode=:any,
+    automatic=:default,
     via=(any(isnothing(obj.target_state) for obj in objectives) ? :phi : :tau),
-    use_finite_differences=false
 )
 ```
 
@@ -44,20 +42,28 @@ will be the overlap of the states `ϕ` with those target states. The functional
 `J_T` may or may not use those overlaps.  Likewise, the resulting `chi!` may or
 may not use the keyword parameter `τ`.
 
-For functionals where ``-∂J_T/∂⟨ϕ_k|`` is known analytically, that analytic
-derivative will be returned, e.g.,
+The derivative can be calculated analytically of automatically (via automatic
+differentiation) depending on the value of `mode`. For `mode=:any`, an analytic
+derivative is returned if available, with a fallback to an automatic derivative.
+
+If `mode=:analytic`, return an analytically known ``-∂J_T/∂⟨ϕ_k|``, e.g.,
 
 * `J_T_sm` → `chi_sm!`,
 * `J_T_re` → `chi_re!`,
 * `J_T_ss` → `chi_ss!`.
 
-Otherwise, or if `force_zygote=true` or `use_finite_differences=true`, the
-derivative to calculate ``|χ_k⟩`` will be evaluated automatically, via
-automatic differentiation with Zygote, or via finite differences (which
-primarily serves for testing the Zygote gradient).
+and throw an error if no analytic derivative is known.
+
+If `mode=:automatic`, return an automatic derivative (even if an analytic
+derivative is known). The calculation of an automatic derivative  (whether via
+`mode=:any` or `mode=:automatic`) requires that a suitable framework (e.g.,
+`Zygote` or `FiniteDifferences`) has been loaded. The loaded module must be
+passed as `automatic` keyword argument. Alternatively, it can be registered as
+a default value for `automatic` by calling
+`QuantumControl.set_default_ad_framework`.
 
 When evaluating ``|χ_k⟩`` automatically, if `via=:phi` is given , ``|χ_k(T)⟩``
-is calculated directly as defined a above from the gradient with respect to
+is calculated directly as defined above from the gradient with respect to
 the states ``\{|ϕ_k(T)⟩\}``. The resulting function `chi!` ignores any passed
 `τ` keyword argument.
 
@@ -110,7 +116,7 @@ and the definition of the Zygote gradient with respect to a complex scalar,
     `J_T` function, define a new method `make_analytic_chi` like so:
 
     ```julia
-    make_analytic_chi(::typeof(J_T_sm), objectives) = chi_sm!
+    QuantumControlBase.make_analytic_chi(::typeof(J_T_sm), objectives) = chi_sm!
     ```
 
     which links `make_chi` for `J_T_sm` to `chi_sm!`.
@@ -125,92 +131,121 @@ and the definition of the Zygote gradient with respect to a complex scalar,
 function make_chi(
     J_T,
     objectives;
-    force_zygote=false,
+    mode=:any,
+    automatic=:default,
     via=_default_chi_via(objectives),
-    use_finite_differences=false
 )
-    if (force_zygote || use_finite_differences)
-        return make_automatic_chi(J_T, objectives; via, use_finite_differences)
+    if mode == :any
+        try
+            chi = make_analytic_chi(J_T, objectives)
+            @debug "make_chi for J_T=$(J_T) -> analytic"
+            # TODO: call chi to compile it and ensure required properties
+            return chi
+        catch exception
+            if exception isa MethodError
+                @info "make_chi for J_T=$(J_T): fallback to mode=:automatic"
+                try
+                    chi = make_automatic_chi(J_T, objectives, automatic; via)
+                    # TODO: call chi to compile it and ensure required properties
+                    return chi
+                catch exception
+                    if exception isa MethodError
+                        msg = "make_chi for J_T=$(J_T): no analytic gradient, and no automatic gradient with `automatic=$(repr(automatic))`."
+                        error(msg)
+                    else
+                        rethrow()
+                    end
+                end
+            else
+                rethrow()
+            end
+        end
+    elseif mode == :analytic
+        try
+            chi = make_analytic_chi(J_T, objectives)
+            # TODO: call chi to compile it and ensure required properties
+            return chi
+        catch exception
+            if exception isa MethodError
+                msg = "make_chi for J_T=$(J_T): no analytic gradient. Implement `QuantumControlBase.make_analytic_chi(::typeof(J_T), objectives)`"
+                error(msg)
+            else
+                rethrow()
+            end
+        end
+    elseif mode == :automatic
+        try
+            chi = make_automatic_chi(J_T, objectives, automatic; via)
+            # TODO: call chi to compile it and ensure required properties
+            return chi
+        catch exception
+            if exception isa MethodError
+                msg = "make_chi for J_T=$(J_T): no automatic gradient with `automatic=$(repr(automatic))`."
+                error(msg)
+            else
+                rethrow()
+            end
+        end
     else
-        return make_analytic_chi(J_T, objectives)
+        msg = "`mode=$(repr(mode))` must be one of :any, :analytic, :automatic"
+        throw(ArgumentError(msg))
     end
 end
 
 
-function make_automatic_chi(
-    J_T,
-    objectives;
-    via=_default_chi_via(objectives),
-    use_finite_differences=false
-)
+# Generic placeholder
+function make_analytic_chi end
 
-    N = length(objectives)
 
-    # TODO: keyword arguments (τ) should not use unicode
-
-    function zygote_chi_via_phi!(χ, ϕ, objectives; τ=nothing)
-        function _J_T(Ψ...)
-            -J_T(Ψ, objectives)
-        end
-        if use_finite_differences
-            fdm = FiniteDifferences.central_fdm(5, 1)
-            ∇J = FiniteDifferences.grad(fdm, _J_T, ϕ...)
-        else
-            ∇J = Zygote.gradient(_J_T, ϕ...)
-        end
-        for (k, ∇Jₖ) ∈ enumerate(∇J)
-            ∇Jₖ = convert(typeof(χ[k]), ∇Jₖ)
-            # |χₖ⟩ = ½ |∇Jₖ⟩  # ½ corrects for gradient vs Wirtinger deriv
-            axpby!(0.5, ∇Jₖ, false, χ[k])
-        end
-    end
-
-    function zygote_chi_via_tau!(χ, ϕ, objectives; τ)
-        function _J_T(τ...)
-            -J_T(ϕ, objectives; τ=τ)
-        end
-        if use_finite_differences
-            fdm = FiniteDifferences.central_fdm(5, 1)
-            ∇J = FiniteDifferences.grad(fdm, _J_T, τ...)
-        else
-            ∇J = Zygote.gradient(_J_T, τ...)
-        end
-        for (k, ∇Jₖ) ∈ enumerate(∇J)
-            ∂J╱∂τ̄ₖ = 0.5 * ∇Jₖ  # ½ corrects for gradient vs Wirtinger deriv
-            # |χₖ⟩ = (∂J/∂τ̄ₖ) |ϕₖ⟩
-            axpby!(∂J╱∂τ̄ₖ, objectives[k].target_state, false, χ[k])
-        end
-    end
-
-    # Test J_T function interface
-    ϕ_initial = [obj.initial_state for obj in objectives]
-    J_T_val = J_T(ϕ_initial, objectives)
-    J_T_val::Float64
-
-    if via ≡ :phi
-        return zygote_chi_via_phi!
-    elseif via ≡ :tau
-        ϕ_tgt = [obj.target_state for obj in objectives]
-        if any(isnothing.(ϕ_tgt))
-            error("`via=:tau` requires that all objectives define a `target_state`")
-        end
-        τ_tgt = ComplexF64[1.0 for obj in objectives]
-        if abs(J_T(ϕ_tgt, objectives) - J_T(nothing, objectives; τ=τ_tgt)) > 1e-12
-            error(
-                "`via=:tau` in `make_chi` requires that `J_T`=$(repr(J_T)) can be evaluated solely via `τ`"
-            )
-        end
-        return zygote_chi_via_tau!
-    else
-        error("`via` must be either `:phi` or `:tau`, not $(repr(via))")
-    end
-
+# Module to Symbol-Val
+function make_automatic_chi(J_T, objectives, automatic::Module; via)
+    return make_automatic_chi(J_T, objectives, Val(nameof(automatic)); via)
 end
 
-make_analytic_chi(J_T, objectives) = make_automatic_chi(J_T, objectives)
-# Well, the above fallback to `make_automatic_chi` is clearly not "analytic", but
-# the intent of this name is to allow users to define new analytic
-# implementation, cf. the explanation in the doc of `make_chi`.
+# Symbol to Symbol-Val
+function make_automatic_chi(J_T, objectives, automatic::Symbol; via)
+    return make_automatic_chi(J_T, objectives, Val(automatic); via)
+end
+
+
+DEFAULT_AD_FRAMEWORK = :nothing
+
+function make_automatic_chi(J_T, objectives, ::Val{:default}; via)
+    if DEFAULT_AD_FRAMEWORK == :nothing
+        msg = "make_chi: no default `automatic`. You must run `QuantumControl.set_default_ad_framework` first, e.g. `import Zygote; QuantumControl.set_default_ad_framework(Zygote)`."
+        error(msg)
+    else
+        automatic = DEFAULT_AD_FRAMEWORK
+        chi = make_automatic_chi(J_T, objectives, DEFAULT_AD_FRAMEWORK; via)
+        (string(automatic) == "default") && error("automatic fallback") # DEBUG
+        @info "make_chi for J_T=$(J_T): automatic with $automatic"
+        return chi
+    end
+end
+
+
+# There is a user-facing wrapper `QuantumControl.set_default_ad_framework`.
+# See the documentation there.
+function _set_default_ad_framework(mod::Module; quiet=false)
+    global DEFAULT_AD_FRAMEWORK
+    automatic = nameof(mod)
+    if !quiet
+        @info "QuantumControlBase: Setting $automatic as the default provider for automatic differentiation."
+    end
+    DEFAULT_AD_FRAMEWORK = automatic
+    return nothing
+end
+
+
+function _set_default_ad_framework(::Nothing; quiet=false)
+    global DEFAULT_AD_FRAMEWORK
+    if !quiet
+        @info "Unsetting the default provider for automatic differentiation."
+    end
+    DEFAULT_AD_FRAMEWORK = :nothing
+    return nothing
+end
+
 
 
 """
@@ -220,8 +255,8 @@ Return a function to evaluate ``∂J_a/∂ϵ_{ln}`` for a pulse value running co
 grad_J_a! = make_grad_J_a(
     J_a,
     tlist;
-    force_zygote=false,
-    use_finite_differences=false
+    mode=:any,
+    automatic=:default,
 )
 ```
 
@@ -230,15 +265,10 @@ returns a function so that `grad_J_a!(∇J_a, pulsevals, tlist)` sets
 must have the interface `J_a(pulsevals, tlist)`, see, e.g.,
 `J_a_fluence`.
 
-If `force_zygote=true`, automatic differentiation with Zygote will be used to
-calculate the derivative.
-
-If `use_finite_differences=true`, the derivative will be calculated via finite
-differences. This may be used to verify Zygote gradients.
-
-By default, for functionals `J_a` that have a known analytic derivative, that
-analytic derivative will be used. For unknown functions, the derivative will be
-calculated via Zygote.
+The parameters `mode` and `automatic` are handled as in [`make_chi`](@ref),
+where `mode` is one of `:any`, `:analytic`, `:automatic`, and `automatic` is
+he loaded module of an automatic differentiation framework, where `:default`
+refers to the framework set with `QuantumControl.set_default_ad_framework`.
 
 !!! tip
 
@@ -251,28 +281,80 @@ calculated via Zygote.
 
     which links `make_grad_J_a` for `J_a_fluence` to `grad_J_a_fluence!`.
 """
-function make_grad_J_a(J_a, tlist; force_zygote=false, use_finite_differences=false)
-    if (force_zygote || use_finite_differences)
-        return make_automatic_grad_J_a(J_a, tlist; use_finite_differences)
-    else
-        return make_analytic_grad_J_a(J_a, tlist)
-    end
-end
-
-
-function make_automatic_grad_J_a(J_a, tlist; use_finite_differences=false)
-    function automatic_grad_J_a!(∇J_a, pulsevals, tlist)
-        func = pulsevals -> J_a(pulsevals, tlist)
-        if use_finite_differences
-            fdm = FiniteDifferences.central_fdm(5, 1)
-            ∇J_a_fdm = FiniteDifferences.grad(fdm, func, pulsevals)[1]
-            copyto!(∇J_a, ∇J_a_fdm)
-        else
-            ∇J_a_zygote = Zygote.gradient(func, pulsevals)[1]
-            copyto!(∇J_a, ∇J_a_zygote)
+function make_grad_J_a(J_a, tlist; mode=:any, automatic=:default)
+    if mode == :any
+        try
+            grad_J_a = make_analytic_grad_J_a(J_a, tlist)
+            @debug "make_grad_J_a for J_a=$(J_a) -> analytic"
+            return grad_J_a
+        catch exception
+            if exception isa MethodError
+                @info "make_grad_J_a for J_a=$(J_a): fallback to mode=:automatic"
+                try
+                    grad_J_a = make_automatic_grad_J_a(J_a, tlist, automatic)
+                    return grad_J_a
+                catch exception
+                    if exception isa MethodError
+                        msg = "make_grad_J_a for J_a=$(J_a): no analytic gradient, and no automatic gradient with `automatic=$(repr(automatic))`."
+                        error(msg)
+                    else
+                        rethrow()
+                    end
+                end
+            else
+                rethrow()
+            end
         end
+    elseif mode == :analytic
+        try
+            return make_analytic_grad_J_a(J_a, tlist)
+        catch exception
+            if exception isa MethodError
+                msg = "make_grad_J_a for J_a=$(J_a): no analytic gradient. Implement `QuantumControlBase.make_analytic_grad_J_a(::typeof(J_a), tlist)`"
+                error(msg)
+            else
+                rethrow()
+            end
+        end
+    elseif mode == :automatic
+        try
+            return make_automatic_grad_J_a(J_a, tlist, automatic)
+        catch exception
+            if exception isa MethodError
+                msg = "make_grad_J_a for J_a=$(J_a): no automatic gradient with `automatic=$(repr(automatic))`."
+                error(msg)
+            else
+                rethrow()
+            end
+        end
+    else
+        msg = "`mode=$(repr(mode))` must be one of :any, :analytic, :automatic"
+        throw(ArgumentError(msg))
     end
-    return automatic_grad_J_a!
 end
 
-make_analytic_grad_J_a(J_a, tlist) = make_automatic_grad_J_a(J_a, tlist)
+
+function make_automatic_grad_J_a(J_a, tlist, ::Val{:default})
+    if DEFAULT_AD_FRAMEWORK == :nothing
+        msg = "make_automatic_grad_J_a: no default `automatic`. You must run `set_default_ad_framework` first, e.g. `import Zygote; QuantumControl.set_default_ad_framework(Zygote)`."
+        error(msg)
+    else
+        automatic = DEFAULT_AD_FRAMEWORK
+        grad_J_a = make_automatic_grad_J_a(J_a, tlist, DEFAULT_AD_FRAMEWORK)
+        @info "make_grad_J_a for J_a=$(J_a): automatic with $automatic"
+        return grad_J_a
+    end
+end
+
+# Generic placeholder
+function make_analytic_grad_J_a end
+
+# Module to Symbol-Val
+function make_automatic_grad_J_a(J_a, tlist, automatic::Module)
+    return make_automatic_grad_J_a(J_a, tlist, Val(nameof(automatic)))
+end
+
+# Symbol to Symbol-Val
+function make_automatic_grad_J_a(J_a, tlist, automatic::Symbol)
+    return make_automatic_grad_J_a(J_a, tlist, Val(automatic))
+end

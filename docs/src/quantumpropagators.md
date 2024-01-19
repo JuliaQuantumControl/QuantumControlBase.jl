@@ -12,6 +12,7 @@ Modules = [
     QuantumPropagators.Shapes,
     QuantumPropagators.Controls,
     QuantumPropagators.Amplitudes,
-    QuantumPropagators.Generators
+    QuantumPropagators.Generators,
+    QuantumPropagators.Interfaces,
 ]
 ```
