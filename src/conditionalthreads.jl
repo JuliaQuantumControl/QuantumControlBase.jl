@@ -15,8 +15,8 @@ Usage:
 ```julia
 using QuantumControlBase: @threadsif
 
-function optimize(objectives; use_threads=true)
-    @threadsif use_threads for k = 1:length(objectives)
+function optimize(trajectories; use_threads=true)
+    @threadsif use_threads for k = 1:length(trajectories)
     # ...
     end
 end

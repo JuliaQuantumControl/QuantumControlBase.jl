@@ -8,11 +8,11 @@ using QuantumControlTestUtils.DummyOptimization: dummy_control_problem
 @testset "dummy optimization" begin
 
     println("")
-    problem = dummy_control_problem(n_objectives=4, n_controls=3)
+    problem = dummy_control_problem(n_trajectories=4, n_controls=3)
     result = optimize(problem; method=:dummymethod)
     @test result.converged
 
-    H = problem.objectives[1].generator
+    H = problem.trajectories[1].generator
     H_opt = substitute(
         H,
         Dict(

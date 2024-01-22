@@ -1,6 +1,6 @@
 using Test
 import QuantumControlBase
-using QuantumControl: ControlProblem, Objective
+using QuantumControl: ControlProblem, Trajectory
 
 @testset "optimize-kwargs" begin
 
@@ -21,7 +21,7 @@ using QuantumControl: ControlProblem, Objective
         optimize_kwargstest(problem)
 
     problem = ControlProblem(
-        objectives=[Objective(initial_state=nothing, generator=nothing)],
+        [Trajectory(nothing, nothing)],
         pulse_options=Dict(),
         tlist=[0.0, 10.0],
         iter_stop=2,

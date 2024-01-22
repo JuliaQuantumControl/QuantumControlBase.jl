@@ -1,107 +1,193 @@
-# Extension of QuantumPropagators.propagate for control objectives.
+# Extension of QuantumPropagators.propagate for trajectories
 
+using Logging
 import QuantumPropagators
 using QuantumPropagators.Controls: substitute, get_controls
 # from conditionalthreads.jl: @threadsif
 
 
-# Internal method for getting a propagation method from one or more keyword
-# arguments, with a default in a corresponding field/property of `obj`. For use
-# in setting up the workspace for optimization methods.
-#
-# For example,
-#
-#     get_objective_prop_method(obj, :bw_prop_method, :prop_method; kwargs...)
-#
-# uses `kwargs[:bw_prop_method]`, `obj.bw_prop_method`, `kwargs[:prop_method]`,
-# `obj.prop_method`, `:auto`, in that order.
-#
-function get_objective_prop_method(obj, symbols...; kwargs...)
-    for symbol in symbols
-        if symbol ∈ keys(kwargs)
-            return kwargs[symbol]
-        elseif symbol ∈ propertynames(obj)
-            return Symbol(getproperty(obj, symbol))
-        end
-    end
-    throw(
-        ArgumentError(
-            "No propagation method from keywords $(repr(symbols)) of Objective with properties $(propertynames(obj)) or in optimization keyword arguments $(keys(kwargs))"
-        )
-    )
-end
-
-
-"""Propagate with the dynamical generator of a control objective.
+"""Propagate a [`Trajectory`](@ref).
 
 ```julia
-propagate_objective(
-    obj,
+propagate_trajectory(
+    traj,
     tlist;
-    method,  # mandatory keyword argument
-    initial_state=obj.initial_state,
+    initial_state=traj.initial_state,
     kwargs...
 )
 ```
 
-propagates `initial_state` under the dynamics described by `obj.generator`.
+propagates `initial_state` under the dynamics described by `traj.generator`. It
+takes the same keyword arguments as [`QuantumPropagators.propagate`](@ref),
+with default values from any property of `traj` with a `prop_` prefix
+(`prop_method`, `prop_inplace`, `prop_callback`, …).
+See [`init_prop_trajectory`](@ref) for details.
 
-If `obj` has a property/field `prop_method` or `fw_prop_method`, its value will
-be used as the default for `method` instead of :auto. An explicit keyword
-argument for `method` always overrides the default.
-
-All other `kwargs` are forwarded to the underlying
-[`QuantumPropagators.propagate`](@ref) method for `obj.initial_state`.
+Note that `method` (a mandatory keyword argument in
+[`QuantumPropagators.propagate`](@ref)) must be specified, either as a property
+`prop_method` of the trajectory, or by passing a `method` keyword argument
+explicitly.
 """
-function propagate_objective(obj, tlist; method, initial_state=obj.initial_state, kwargs...)
-    # TODO: get propagation method (and other options) from the properties of
-    # `obj`.
-    return QuantumPropagators.propagate(
-        initial_state,
-        obj.generator,
-        tlist;
-        method,
-        kwargs...
-    )
+function propagate_trajectory(
+    traj,
+    tlist;
+    _prefixes=["prop_"],
+    initial_state=traj.initial_state,
+    kwargs...
+)
+
+    propagator = init_prop_trajectory(traj, tlist; initial_state, kwargs...)
+
+    kwargs = Dict(kwargs...)
+    prop_kwargs = Dict{Symbol,Any}()
+    for name in (:storage, :observables, :show_progress, :callback)
+        for prefix in _prefixes
+            _traj_name = Symbol(prefix * string(name))
+            if hasproperty(traj, _traj_name)
+                prop_kwargs[name] = getproperty(traj, _traj_name)
+            end
+        end
+        if haskey(kwargs, name)
+            prop_kwargs[name] = kwargs[name]
+        end
+    end
+
+    @debug "propagate_trajectory: propagate(propagator, …) with kwargs=$(prop_kwargs)"
+
+    return QuantumPropagators.propagate(propagator; prop_kwargs...)
+
 end
 
 
-"""Propagate multiple objectives in parallel.
+"""Initialize a propagator for a given [`Trajectory`](@ref).
 
-```julia
-result = propagate_objectives(objectives, tlist; use_threads=true, kwargs...)
+```
+propagator = init_prop_trajectory(
+    traj,
+    tlist;
+    initial_state=traj.initial_state,
+    kwargs...
+)
 ```
 
-runs [`propagate_objective`](@ref) for every objective in `objectives`,
+initializes a [`Propagator`](@ref QuantumPropagators.AbstractPropagator) for
+the propagation of the `initial_state` under the dynamics described by
+`traj.generator`.
+
+All keyword arguments are forwarded to [`QuantumPropagators.init_prop`](@ref),
+with default values from any property of `traj` with a `prop_` prefix. That is,
+the keyword arguments for the underlying [`QuantumPropagators.init_prop`](@ref)
+are determined as follows:
+
+* For any property of `traj` whose name starts with the prefix `prop_`, strip
+  the prefix and use that property as a keyword argument for `init_prop`. For
+  example, if `traj.prop_method` is defined, `method=traj.prop_method` will be
+  passed to `init_prop`. Similarly, `traj.prop_inplace` would be passed as
+  `inplace=traj.prop_inplace`, etc.
+* Any explicitly keyword argument to `init_prop_trajectory` overrides the values
+  from the properties of `traj`.
+
+Note that the propagation `method` in particular must be specified, as it is a
+mandatory keyword argument in [`QuantumPropagators.propagate`](@ref)). Thus,
+either `traj` must have a property `prop_method` of the trajectory, or `method`
+must be given as an explicit keyword argument.
+"""
+function init_prop_trajectory(
+    traj::Trajectory,
+    tlist;
+    _prefixes=["prop_"],
+    _msg="Initializing propagator for trajectory",
+    _filter_kwargs=false,
+    initial_state=traj.initial_state,
+    verbose=false,
+    kwargs...
+)
+    #
+    # The private keyword arguments, `_prefixes`, `_msg`, `_filter_kwargs` are
+    # for internal use when setting up optimal control workspace objects (see,
+    # e.g., Krotov.jl and GRAPE.jl)
+    #
+    # * `_prefixes`: which prefixes to translate into `init_prop` kwargs. For
+    #   example, in Krotov/GRAPE, we have propagators both for the forward and
+    #   backward propagation of each trajectory, and we allow prefixes
+    #   "fw_prop_"/"bw_prop_" in addition to the standard "prop_" prefix.
+    # * `msg`: The message to show via @debug/@info. This could be customized
+    #    to e.g. "Initializing fw-propagator for trajectory 1/N"
+    # * `_filter_kwargs`: Whether to filter `kwargs` to `_prefixes`. This
+    #    allows to pass the keyword arguments from `optimize` directly to
+    #    `init_prop_trajectory`. By convention, these use the same
+    #    `prop`/`fw_prop`/`bw_prop` prefixes as the properties of `traj`.
+    #
+    kwargs_dict = Dict{Symbol,Any}()
+    for prefix in _prefixes
+        for key in propertynames(traj)
+            if startswith(string(key), prefix)
+                kwargs_dict[Symbol(string(key)[length(prefix)+1:end])] =
+                    getproperty(traj, key)
+            end
+        end
+    end
+    if _filter_kwargs
+        for prefix in _prefixes
+            for (key, val) in kwargs
+                if startswith(string(key), prefix)
+                    kwargs_dict[Symbol(string(key)[length(prefix)+1:end])] = val
+                end
+            end
+        end
+    else
+        merge!(kwargs_dict, kwargs)
+    end
+    level = verbose ? Logging.Info : Logging.Debug
+    @logmsg level _msg kwargs = kwargs_dict
+    try
+        return init_prop(initial_state, traj.generator, tlist; verbose, kwargs_dict...)
+    catch exception
+        msg = "Cannot initialize propagation for trajectory"
+        @error msg exception kwargs = kwargs_dict
+        rethrow()
+    end
+end
+
+
+"""Propagate multiple trajectories in parallel.
+
+```julia
+result = propagate_trajectories(
+    trajectories, tlist; use_threads=true, kwargs...
+)
+```
+
+runs [`propagate_trajectory`](@ref) for every trajectory in `trajectories`,
 collects and returns a vector of results. The propagation happens in parallel
 if `use_threads=true` (default). All keyword parameters are passed to
-[`propagate_objective`](@ref), except that if `initial_state` is given, it must
-be a vector of initial states, one for each objective. Likewise, to pass
+[`propagate_trajectory`](@ref), except that if `initial_state` is given, it
+must be a vector of initial states, one for each trajectory. Likewise, to pass
 pre-allocated storage arrays to `storage`, a vector of storage arrays must be
 passed. A simple `storage=true` will still work to return a vector of storage
 results.
 """
-function propagate_objectives(
-    objectives,
+function propagate_trajectories(
+    trajectories,
     tlist;
     use_threads=true,
     storage=nothing,
-    initial_state=[obj.initial_state for obj in objectives],
+    initial_state=[traj.initial_state for traj in trajectories],
     kwargs...
 )
-    result = Vector{Any}(undef, length(objectives))
-    @threadsif use_threads for (k, obj) in collect(enumerate(objectives))
+    result = Vector{Any}(undef, length(trajectories))
+    @threadsif use_threads for (k, traj) in collect(enumerate(trajectories))
         if isnothing(storage) || (storage isa Bool)
-            result[k] = propagate_objective(
-                obj,
+            result[k] = propagate_trajectory(
+                traj,
                 tlist;
                 storage=storage,
                 initial_state=initial_state[k],
                 kwargs...
             )
         else
-            result[k] = propagate_objective(
-                obj,
+            result[k] = propagate_trajectory(
+                traj,
                 tlist;
                 storage=storage[k],
                 initial_state=initial_state[k],

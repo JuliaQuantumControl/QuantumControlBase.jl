@@ -2,8 +2,8 @@ using LinearAlgebra
 
 
 # default for `via` argument of `make_chi`
-function _default_chi_via(objectives)
-    if any(isnothing(obj.target_state) for obj in objectives)
+function _default_chi_via(trajectories)
+    if any(isnothing(traj.target_state) for traj in trajectories)
         return :phi
     else
         return :tau
@@ -16,14 +16,14 @@ end
 ```julia
 chi! = make_chi(
     J_T,
-    objectives;
+    trajectories;
     mode=:any,
     automatic=:default,
-    via=(any(isnothing(obj.target_state) for obj in objectives) ? :phi : :tau),
+    via=(any(isnothing(t.target_state) for t in trajectories) ? :phi : :tau),
 )
 ```
 
-creates a function `chi!(χ, ϕ, objectives; τ)` that sets
+creates a function `chi!(χ, ϕ, trajectories; τ)` that sets
 the k'th element of `χ` to ``|χ_k⟩ = -∂J_T/∂⟨ϕ_k|``, where ``|ϕ_k⟩`` is the
 k'th element of `ϕ`. These are the states used as the boundary condition for
 the backward propagation propagation in Krotov's method and GRAPE. Each
@@ -36,8 +36,8 @@ the backward propagation propagation in Krotov's method and GRAPE. Each
 ```
 
 The function `J_T` must take a vector of states `ϕ` and a vector of
-`objectives` as positional parameters, and a vector `τ` as a keyword argument,
-see e.g. `J_T_sm`). If all objectives define a `target_state`, then `τ`
+`trajectories` as positional parameters, and a vector `τ` as a keyword argument,
+see e.g. `J_T_sm`). If all trajectories define a `target_state`, then `τ`
 will be the overlap of the states `ϕ` with those target states. The functional
 `J_T` may or may not use those overlaps.  Likewise, the resulting `chi!` may or
 may not use the keyword parameter `τ`.
@@ -68,7 +68,7 @@ the states ``\{|ϕ_k(T)⟩\}``. The resulting function `chi!` ignores any passed
 `τ` keyword argument.
 
 If `via=:tau` is given instead, the functional ``J_T`` is considered a function
-of overlaps ``τ_k = ⟨ϕ_k^\tgt|ϕ_k(T)⟩``. This requires that all `objectives`
+of overlaps ``τ_k = ⟨ϕ_k^\tgt|ϕ_k(T)⟩``. This requires that all `trajectories`
 define a `target_state` and that `J_T` calculates the value of the functional
 solely based on the values of `τ` passed as a keyword argument.  With only the
 complex conjugate ``τ̄_k = ⟨ϕ_k(T)|ϕ_k^\tgt⟩`` having an explicit dependency on
@@ -116,7 +116,7 @@ and the definition of the Zygote gradient with respect to a complex scalar,
     `J_T` function, define a new method `make_analytic_chi` like so:
 
     ```julia
-    QuantumControlBase.make_analytic_chi(::typeof(J_T_sm), objectives) = chi_sm!
+    QuantumControlBase.make_analytic_chi(::typeof(J_T_sm), trajectories) = chi_sm!
     ```
 
     which links `make_chi` for `J_T_sm` to `chi_sm!`.
@@ -130,14 +130,14 @@ and the definition of the Zygote gradient with respect to a complex scalar,
 """
 function make_chi(
     J_T,
-    objectives;
+    trajectories;
     mode=:any,
     automatic=:default,
-    via=_default_chi_via(objectives),
+    via=_default_chi_via(trajectories),
 )
     if mode == :any
         try
-            chi = make_analytic_chi(J_T, objectives)
+            chi = make_analytic_chi(J_T, trajectories)
             @debug "make_chi for J_T=$(J_T) -> analytic"
             # TODO: call chi to compile it and ensure required properties
             return chi
@@ -145,7 +145,7 @@ function make_chi(
             if exception isa MethodError
                 @info "make_chi for J_T=$(J_T): fallback to mode=:automatic"
                 try
-                    chi = make_automatic_chi(J_T, objectives, automatic; via)
+                    chi = make_automatic_chi(J_T, trajectories, automatic; via)
                     # TODO: call chi to compile it and ensure required properties
                     return chi
                 catch exception
@@ -162,12 +162,12 @@ function make_chi(
         end
     elseif mode == :analytic
         try
-            chi = make_analytic_chi(J_T, objectives)
+            chi = make_analytic_chi(J_T, trajectories)
             # TODO: call chi to compile it and ensure required properties
             return chi
         catch exception
             if exception isa MethodError
-                msg = "make_chi for J_T=$(J_T): no analytic gradient. Implement `QuantumControlBase.make_analytic_chi(::typeof(J_T), objectives)`"
+                msg = "make_chi for J_T=$(J_T): no analytic gradient. Implement `QuantumControlBase.make_analytic_chi(::typeof(J_T), trajectories)`"
                 error(msg)
             else
                 rethrow()
@@ -175,7 +175,7 @@ function make_chi(
         end
     elseif mode == :automatic
         try
-            chi = make_automatic_chi(J_T, objectives, automatic; via)
+            chi = make_automatic_chi(J_T, trajectories, automatic; via)
             # TODO: call chi to compile it and ensure required properties
             return chi
         catch exception
@@ -198,25 +198,25 @@ function make_analytic_chi end
 
 
 # Module to Symbol-Val
-function make_automatic_chi(J_T, objectives, automatic::Module; via)
-    return make_automatic_chi(J_T, objectives, Val(nameof(automatic)); via)
+function make_automatic_chi(J_T, trajectories, automatic::Module; via)
+    return make_automatic_chi(J_T, trajectories, Val(nameof(automatic)); via)
 end
 
 # Symbol to Symbol-Val
-function make_automatic_chi(J_T, objectives, automatic::Symbol; via)
-    return make_automatic_chi(J_T, objectives, Val(automatic); via)
+function make_automatic_chi(J_T, trajectories, automatic::Symbol; via)
+    return make_automatic_chi(J_T, trajectories, Val(automatic); via)
 end
 
 
 DEFAULT_AD_FRAMEWORK = :nothing
 
-function make_automatic_chi(J_T, objectives, ::Val{:default}; via)
+function make_automatic_chi(J_T, trajectories, ::Val{:default}; via)
     if DEFAULT_AD_FRAMEWORK == :nothing
         msg = "make_chi: no default `automatic`. You must run `QuantumControl.set_default_ad_framework` first, e.g. `import Zygote; QuantumControl.set_default_ad_framework(Zygote)`."
         error(msg)
     else
         automatic = DEFAULT_AD_FRAMEWORK
-        chi = make_automatic_chi(J_T, objectives, DEFAULT_AD_FRAMEWORK; via)
+        chi = make_automatic_chi(J_T, trajectories, DEFAULT_AD_FRAMEWORK; via)
         (string(automatic) == "default") && error("automatic fallback") # DEBUG
         @info "make_chi for J_T=$(J_T): automatic with $automatic"
         return chi

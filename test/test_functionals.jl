@@ -17,8 +17,13 @@ N = 4
 L = 2
 N_T = 50
 RNG = StableRNG(4290326946)
-PROBLEM =
-    dummy_control_problem(; N=N_HILBERT, n_objectives=N, n_controls=L, n_steps=N_T, rng=RNG)
+PROBLEM = dummy_control_problem(;
+    N=N_HILBERT,
+    n_trajectories=N,
+    n_controls=L,
+    n_steps=N_T,
+    rng=RNG
+)
 
 
 @testset "make-chi" begin
@@ -26,39 +31,39 @@ PROBLEM =
     # Test that the routine returned by `make_chi` gives the same result
     # as the Zygote chi
 
-    objectives = PROBLEM.objectives
-    χ1 = [similar(obj.initial_state) for obj in objectives]
-    χ2 = [similar(obj.initial_state) for obj in objectives]
-    χ3 = [similar(obj.initial_state) for obj in objectives]
-    χ4 = [similar(obj.initial_state) for obj in objectives]
-    χ5 = [similar(obj.initial_state) for obj in objectives]
-    χ6 = [similar(obj.initial_state) for obj in objectives]
-    χ7 = [similar(obj.initial_state) for obj in objectives]
-    χ8 = [similar(obj.initial_state) for obj in objectives]
+    trajectories = PROBLEM.trajectories
+    χ1 = [similar(traj.initial_state) for traj in trajectories]
+    χ2 = [similar(traj.initial_state) for traj in trajectories]
+    χ3 = [similar(traj.initial_state) for traj in trajectories]
+    χ4 = [similar(traj.initial_state) for traj in trajectories]
+    χ5 = [similar(traj.initial_state) for traj in trajectories]
+    χ6 = [similar(traj.initial_state) for traj in trajectories]
+    χ7 = [similar(traj.initial_state) for traj in trajectories]
+    χ8 = [similar(traj.initial_state) for traj in trajectories]
     ϕ = [random_state_vector(N_HILBERT; rng=RNG) for k = 1:N]
-    τ = [obj.target_state ⋅ ϕ[k] for (k, obj) in enumerate(objectives)]
+    τ = [traj.target_state ⋅ ϕ[k] for (k, traj) in enumerate(trajectories)]
 
     for functional in (J_T_sm, J_T_re, J_T_ss)
 
         #!format: off
-        chi_analytical! = make_chi(functional, objectives; mode=:analytic)
-        chi_auto! = make_chi(functional, objectives)
-        chi_zyg! = make_chi(functional, objectives; mode=:automatic, automatic=Zygote)
-        chi_zyg_phi! = make_chi(functional, objectives; mode=:automatic, automatic=Zygote, via=:phi)
-        chi_zyg_tau! = make_chi(functional, objectives; mode=:automatic, automatic=Zygote, via=:tau)
-        chi_fdm! = make_chi(functional, objectives; mode=:automatic, automatic=FiniteDifferences)
-        chi_fdm_phi! = make_chi(functional, objectives; mode=:automatic, automatic=FiniteDifferences, via=:phi)
-        chi_fdm_tau! = make_chi(functional, objectives; mode=:automatic, automatic=FiniteDifferences, via=:tau)
+        chi_analytical! = make_chi(functional, trajectories; mode=:analytic)
+        chi_auto! = make_chi(functional, trajectories)
+        chi_zyg! = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote)
+        chi_zyg_phi! = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote, via=:phi)
+        chi_zyg_tau! = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote, via=:tau)
+        chi_fdm! = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences)
+        chi_fdm_phi! = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences, via=:phi)
+        chi_fdm_tau! = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences, via=:tau)
         #!format: on
 
-        chi_analytical!(χ1, ϕ, objectives; τ)
-        chi_auto!(χ2, ϕ, objectives; τ)
-        chi_zyg!(χ3, ϕ, objectives; τ)
-        chi_zyg_phi!(χ4, ϕ, objectives; τ)
-        chi_zyg_tau!(χ5, ϕ, objectives; τ)
-        chi_fdm!(χ6, ϕ, objectives; τ)
-        chi_fdm_phi!(χ7, ϕ, objectives; τ)
-        chi_fdm_tau!(χ8, ϕ, objectives; τ)
+        chi_analytical!(χ1, ϕ, trajectories; τ)
+        chi_auto!(χ2, ϕ, trajectories; τ)
+        chi_zyg!(χ3, ϕ, trajectories; τ)
+        chi_zyg_phi!(χ4, ϕ, trajectories; τ)
+        chi_zyg_tau!(χ5, ϕ, trajectories; τ)
+        chi_fdm!(χ6, ϕ, trajectories; τ)
+        chi_fdm_phi!(χ7, ϕ, trajectories; τ)
+        chi_fdm_tau!(χ8, ϕ, trajectories; τ)
 
         @test maximum(norm.(χ1 .- χ2)) < 1e-12
         @test maximum(norm.(χ1 .- χ3)) < 1e-12
@@ -106,12 +111,12 @@ end
 @testset "J_T without analytic derivative" begin
 
     _set_default_ad_framework(nothing; quiet=true)
-    J_T(ϕ, objectives; tau=nothing, τ=tau) = 1.0
+    J_T(ϕ, trajectories; tau=nothing, τ=tau) = 1.0
 
-    objectives = PROBLEM.objectives
+    trajectories = PROBLEM.trajectories
 
     capture = IOCapture.capture(rethrow=Union{}) do
-        make_chi(J_T, objectives)
+        make_chi(J_T, trajectories)
     end
     @test contains(capture.output, "fallback to mode=:automatic")
     @test capture.value isa ErrorException
@@ -121,14 +126,14 @@ end
 
     _set_default_ad_framework(Zygote; quiet=true)
     capture = IOCapture.capture() do
-        make_chi(J_T, objectives)
+        make_chi(J_T, trajectories)
     end
     @test capture.value isa Function
     @test contains(capture.output, "fallback to mode=:automatic")
     @test contains(capture.output, "automatic with Zygote")
 
     capture = IOCapture.capture(rethrow=Union{}) do
-        make_chi(J_T, objectives; mode=:analytic)
+        make_chi(J_T, trajectories; mode=:analytic)
     end
     @test capture.value isa ErrorException
     if capture.value isa ErrorException
@@ -185,11 +190,11 @@ module UnsupportedADFramework end
     _set_default_ad_framework(UnsupportedADFramework; quiet=true)
     @test QuantumControlBase.DEFAULT_AD_FRAMEWORK == :UnsupportedADFramework
 
-    J_T(ϕ, objectives; tau=nothing, τ=tau) = 1.0
-    objectives = PROBLEM.objectives
+    J_T(ϕ, trajectories; tau=nothing, τ=tau) = 1.0
+    trajectories = PROBLEM.trajectories
 
     capture = IOCapture.capture(rethrow=Union{}, passthrough=false) do
-        make_chi(J_T, objectives)
+        make_chi(J_T, trajectories)
     end
     @test contains(capture.output, "fallback to mode=:automatic")
     @test capture.value isa ErrorException
@@ -199,7 +204,7 @@ module UnsupportedADFramework end
     end
 
     capture = IOCapture.capture(rethrow=Union{}, passthrough=false) do
-        make_chi(J_T, objectives; automatic=UnsupportedADFramework)
+        make_chi(J_T, trajectories; automatic=UnsupportedADFramework)
     end
     @test contains(capture.output, "fallback to mode=:automatic")
     @test capture.value isa ErrorException
@@ -209,7 +214,7 @@ module UnsupportedADFramework end
     end
 
     capture = IOCapture.capture(rethrow=Union{}, passthrough=false) do
-        make_chi(J_T, objectives; mode=:automatic, automatic=UnsupportedADFramework)
+        make_chi(J_T, trajectories; mode=:automatic, automatic=UnsupportedADFramework)
     end
     @test capture.value isa ErrorException
     if capture.value isa ErrorException
@@ -270,27 +275,27 @@ end
 
     _set_default_ad_framework(Zygote; quiet=true)
 
-    J_T(ϕ, objectives) = 1.0  # no τ keyword argument
-    objectives = PROBLEM.objectives
+    J_T(ϕ, trajectories) = 1.0  # no τ keyword argument
+    trajectories = PROBLEM.trajectories
     @test_throws ErrorException begin
         IOCapture.capture() do
-            make_chi(J_T, objectives)
+            make_chi(J_T, trajectories)
         end
     end
 
-    function J_T_xxx(ϕ, objectives; tau=nothing, τ=tau)
+    function J_T_xxx(ϕ, trajectories; tau=nothing, τ=tau)
         throw(DomainError("XXX"))
     end
 
     @test_throws DomainError begin
         IOCapture.capture() do
-            make_chi(J_T_xxx, objectives)
+            make_chi(J_T_xxx, trajectories)
         end
     end
 
     @test_throws DomainError begin
         IOCapture.capture() do
-            make_chi(J_T_xxx, objectives; mode=:automatic)
+            make_chi(J_T_xxx, trajectories; mode=:automatic)
         end
     end
 

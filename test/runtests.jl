@@ -5,51 +5,60 @@ using SafeTestsets
 @time @testset verbose = true "QuantumControlBase" begin
 
 
-    print("\n* Propagation (test_propagation.jl):")
+    println("* Propagation (test_propagation.jl):")
     @time @safetestset "Propagation" begin
         include("test_propagation.jl")
     end
 
-    print("\n* Derivatives (test_derives.jl):")
+    println("* Derivatives (test_derives.jl):")
     @time @safetestset "Derivatives" begin
         include("test_derivs.jl")
     end
 
-    print("\n* Functionals (test_functionals.jl):")
+    println("* Functionals (test_functionals.jl):")
     @time @safetestset "Functionals" begin
         include("test_functionals.jl")
     end
 
-    print("\n* Infohook (test_infohook.jl):")
+    println("* Infohook (test_infohook.jl):")
     @time @safetestset "Infohook" begin
         include("test_infohook.jl")
     end
 
-    print("\n* Optimize-kwargs (test_optimize_kwargs.jl):")
+    println("* Optimize-kwargs (test_optimize_kwargs.jl):")
     @time @safetestset "Optimize-kwargs" begin
         include("test_optimize_kwargs.jl")
     end
 
-    print("\n* Dummy Optimization (test_dummy_optimization.jl):")
+    println("* Dummy Optimization (test_dummy_optimization.jl):")
     @time @safetestset "Dummy Optimization" begin
         include("test_dummy_optimization.jl")
     end
 
-    print("\n* Atexit dumps (test_atexit.jl):")
+    println("* Atexit dumps (test_atexit.jl):")
     @time @safetestset "Atexit dumps" begin
         include("test_atexit.jl")
     end
 
-    print("\n* Adjoint Objectives (test_adjoint_objective.jl):")
-    @time @safetestset "Adjoint Objectives" begin
-        include("test_adjoint_objective.jl")
+    println("* Trajectories (test_trajectories.jl):")
+    @time @safetestset "Trajectories" begin
+        include("test_trajectories.jl")
     end
 
-    print("\n* Invalid interfaces (test_invalid_interfaces.jl):")
+    println("* Adjoint Trajectories (test_adjoint_trajectory.jl):")
+    @time @safetestset "Adjoint Trajectories" begin
+        include("test_adjoint_trajectory.jl")
+    end
+
+    println("* Control problems (test_control_problems.jl):")
+    @time @safetestset "Control problems" begin
+        include("test_control_problems.jl")
+    end
+
+    println("* Invalid interfaces (test_invalid_interfaces.jl):")
     @time @safetestset "Invalid interfaces" begin
         include("test_invalid_interfaces.jl")
     end
 
-    print("\n")
-
 end;
+nothing

@@ -36,12 +36,12 @@ using UnicodePlots
 
     H = hamiltonian()
 
-    obj = Objective(initial_state=ket(0), generator=H, target_state=ket(1))
+    traj = Trajectory(ket(0), H, target_state=ket(1))
 
     tlist = collect(range(0, 5, length=500))
 
     states =
-        propagate(obj.initial_state, obj.generator, tlist, storage=true, method=ExpProp)
+        propagate(traj.initial_state, traj.generator, tlist, storage=true, method=ExpProp)
 
     pops = abs.(states) .^ 2
     pop0 = pops[1, :]

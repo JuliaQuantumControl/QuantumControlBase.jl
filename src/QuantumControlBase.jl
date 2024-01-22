@@ -2,12 +2,13 @@ module QuantumControlBase
 
 # The export here is simply to indicate which symbols should be re-exported in
 # QuantumControl
-export ControlProblem, Objective, optimize, propagate_objective
-export propagate_objectives
+export ControlProblem, Trajectory, optimize, propagate_trajectory
+export propagate_trajectories
 
 include("atexit.jl")
 include("conditionalthreads.jl")
-include("objectives.jl")
+include("trajectories.jl")
+include("control_problem.jl")
 include("propagate.jl")
 include("derivs.jl")
 include("functionals.jl")

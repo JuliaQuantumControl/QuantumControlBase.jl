@@ -9,14 +9,14 @@ import QuantumControlBase: make_automatic_chi, make_automatic_grad_J_a
 
 function make_automatic_chi(
     J_T,
-    objectives,
+    trajectories,
     ::Val{:FiniteDifferences};
-    via=_default_chi_via(objectives)
+    via=_default_chi_via(trajectories)
 )
 
-    function fdm_chi_via_phi!(χ, ϕ, objectives; tau=nothing, τ=tau)
+    function fdm_chi_via_phi!(χ, ϕ, trajectories; tau=nothing, τ=tau)
         function _J_T(Ψ...)
-            -J_T(Ψ, objectives)
+            -J_T(Ψ, trajectories)
         end
         fdm = FiniteDifferences.central_fdm(5, 1)
         ∇J = FiniteDifferences.grad(fdm, _J_T, ϕ...)
@@ -27,32 +27,32 @@ function make_automatic_chi(
         end
     end
 
-    function fdm_chi_via_tau!(χ, ϕ, objectives; tau=nothing, τ=tau)
+    function fdm_chi_via_tau!(χ, ϕ, trajectories; tau=nothing, τ=tau)
         if isnothing(τ)
             msg = "chi! returned by `make_chi` with `via=:tau` requires keyword argument tau/τ"
             throw(ArgumentError(msg))
         end
         function _J_T(τ...)
-            -J_T(ϕ, objectives; τ=τ)
+            -J_T(ϕ, trajectories; τ=τ)
         end
         fdm = FiniteDifferences.central_fdm(5, 1)
         ∇J = FiniteDifferences.grad(fdm, _J_T, τ...)
         for (k, ∇Jₖ) ∈ enumerate(∇J)
             ∂J╱∂τ̄ₖ = 0.5 * ∇Jₖ  # ½ corrects for gradient vs Wirtinger deriv
             # |χₖ⟩ = (∂J/∂τ̄ₖ) |ϕₖ⟩
-            axpby!(∂J╱∂τ̄ₖ, objectives[k].target_state, false, χ[k])
+            axpby!(∂J╱∂τ̄ₖ, trajectories[k].target_state, false, χ[k])
         end
     end
 
     if via ≡ :phi
         return fdm_chi_via_phi!
     elseif via ≡ :tau
-        ϕ_tgt = [obj.target_state for obj in objectives]
+        ϕ_tgt = [traj.target_state for traj in trajectories]
         if any(isnothing.(ϕ_tgt))
-            error("`via=:tau` requires that all objectives define a `target_state`")
+            error("`via=:tau` requires that all trajectories define a `target_state`")
         end
-        τ_tgt = ComplexF64[1.0 for obj in objectives]
-        if abs(J_T(ϕ_tgt, objectives) - J_T(nothing, objectives; τ=τ_tgt)) > 1e-12
+        τ_tgt = ComplexF64[1.0 for traj in trajectories]
+        if abs(J_T(ϕ_tgt, trajectories) - J_T(nothing, trajectories; τ=τ_tgt)) > 1e-12
             error(
                 "`via=:tau` in `make_chi` requires that `J_T`=$(repr(J_T)) can be evaluated solely via `τ`"
             )

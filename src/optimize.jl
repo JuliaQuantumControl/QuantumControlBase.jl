@@ -14,7 +14,7 @@ given optimization `method`. Any keyword argument temporarily overrides the
 corresponding keyword argument in `problem`.
 
 If `check` is true (default), the `initial_state` and `generator` of each
-objective is checked with [`check_state`](@ref) and [`check_generator`](@ref).
+trajectory is checked with [`check_state`](@ref) and [`check_generator`](@ref).
 """
 function optimize(
     problem::ControlProblem;
@@ -33,7 +33,7 @@ function optimize(
         # benefit of the custom constructor, e.g. for handling a tuple of
         # info-hooks.
         temp_problem = ControlProblem(;
-            objectives=problem.objectives,
+            trajectories=problem.trajectories,
             tlist=problem.tlist,
             temp_kwargs...
         )
@@ -41,19 +41,19 @@ function optimize(
     end
 
     if check
-        for (i, obj) in enumerate(problem.objectives)
-            if !check_state(obj.initial_state; for_immutable_state, for_mutable_state)
-                error("The `initial_state` of objective $i is not valid")
+        for (i, traj) in enumerate(problem.trajectories)
+            if !check_state(traj.initial_state; for_immutable_state, for_mutable_state)
+                error("The `initial_state` of trajectory $i is not valid")
             end
             if !check_generator(
-                obj.generator;
-                state=obj.initial_state,
+                traj.generator;
+                state=traj.initial_state,
                 tlist=problem.tlist,
                 for_immutable_state,
                 for_mutable_state,
                 for_expval
             )
-                error("The `generator` of objective $i is not valid")
+                error("The `generator` of trajectory $i is not valid")
             end
         end
     end
