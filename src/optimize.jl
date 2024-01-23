@@ -6,19 +6,41 @@ using QuantumPropagators.Interfaces: check_state
 """Optimize a quantum control problem.
 
 ```julia
-result = optimize(problem; method=<method>, check=true, kwargs...)
+result = optimize(problem; method, check=true, kwargs...)
 ```
 
-optimizes towards a solution of given [`problem`](@ref ControlProblem) with the
-given optimization `method`. Any keyword argument temporarily overrides the
-corresponding keyword argument in `problem`.
+optimizes towards a solution of given [`problem`](@ref ControlProblem) with
+the given `method`, which should be a `Module` implementing the method, e.g.,
+
+```julia
+using Krotov
+result = optimize(problem; method=Krotov)
+```
+
+Note that `method` is a mandatory keyword argument.
 
 If `check` is true (default), the `initial_state` and `generator` of each
 trajectory is checked with [`check_state`](@ref) and [`check_generator`](@ref).
+Any other keyword argument temporarily overrides the corresponding keyword
+argument in [`problem`](@ref ControlProblem). These arguments are available to
+the optimizer, see each optimization package's documentation for details.
+
+To obtain the documentation for which options a particular method uses, run,
+e.g.,
+
+```julia
+? optimize(problem, ::Val{:Krotov})
+```
+
+where `:Krotov` is the name of the module implementing the method. The above is
+also the method signature that a `Module` wishing to implement a control method
+must define.
+
+The returned `result` object is specific to the optimization method.
 """
 function optimize(
     problem::ControlProblem;
-    method::Symbol,
+    method::Union{Module,Symbol},
     check=true,
     for_expval=true, # undocumented
     for_immutable_state=true, # undocumented
@@ -63,6 +85,7 @@ function optimize(
 end
 
 optimize(problem::ControlProblem, method::Symbol) = optimize(problem, Val(method))
+optimize(problem::ControlProblem, method::Module) = optimize(problem, Val(nameof(method)))
 #
 # Note: Methods *must* be defined in the various optimization packages as e.g.
 #
