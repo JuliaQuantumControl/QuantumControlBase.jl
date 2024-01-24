@@ -52,7 +52,7 @@ ControlProblem(; trajectories, tlist, kwargs...) =
 function Base.summary(io::IO, problem::ControlProblem)
     N = length(problem.trajectories)
     nt = length(problem.tlist)
-    print(io, typeof(problem), " with $N trajectories and $nt time steps")
+    print(io, "ControlProblem with $N trajectories and $nt time steps")
 end
 
 
