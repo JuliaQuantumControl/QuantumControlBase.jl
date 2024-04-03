@@ -45,6 +45,9 @@ function optimize(
     for_expval=true, # undocumented
     for_immutable_state=true, # undocumented
     for_mutable_state=true, # undocumented
+    for_pwc=true,  # undocumented
+    for_time_continuous=false,  # undocumented
+    for_parameterization=false, # undocumented
     kwargs...
 )
 
@@ -73,7 +76,10 @@ function optimize(
                 tlist=problem.tlist,
                 for_immutable_state,
                 for_mutable_state,
-                for_expval
+                for_expval,
+                for_pwc,
+                for_time_continuous,
+                for_parameterization,
             )
                 error("The `generator` of trajectory $i is not valid")
             end

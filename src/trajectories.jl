@@ -3,8 +3,8 @@ import QuantumPropagators
 using Printf
 
 using QuantumPropagators.Generators: Generator, Operator
-import QuantumPropagators.Controls: substitute
-import QuantumPropagators.Generators: get_controls
+using QuantumPropagators.Controls: _get_parameters
+import QuantumPropagators.Controls: substitute, get_controls, get_parameters
 
 """Description of a state's time evolution.
 
@@ -281,4 +281,19 @@ function get_controls(trajectories::Vector{<:Trajectory})
         end
     end
     return Tuple(controls)
+end
+
+
+"""
+```julia
+parameters = get_parameters(trajectories)
+```
+
+collects and combines get parameter arrays from all the generators in
+[`trajectories`](@ref Trajectory). Note that this allows any custom generator
+type to define a custom `get_parameters` method to override the default of
+obtaining the parameters recursively from the controls inside the generator.
+"""
+function get_parameters(trajectories::Vector{<:Trajectory})
+    return _get_parameters(trajectories; via=(trajs -> [traj.generator for traj in trajs]))
 end

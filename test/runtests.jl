@@ -15,6 +15,11 @@ using SafeTestsets
         include("test_derivs.jl")
     end
 
+    println("\n* Parameterization (test_parameterization.jl):")
+    @time @safetestset "Parameterization" begin
+        include("test_parameterization.jl")
+    end
+
     println("* Functionals (test_functionals.jl):")
     @time @safetestset "Functionals" begin
         include("test_functionals.jl")

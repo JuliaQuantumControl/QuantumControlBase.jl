@@ -2,9 +2,9 @@ using Test
 using Logging: with_logger
 using LinearAlgebra: I
 using QuantumPropagators
-using QuantumControlTestUtils: QuantumTestLogger
 using QuantumControlTestUtils.RandomObjects: random_matrix, random_state_vector
 using QuantumControlBase: check_generator, check_amplitude
+using IOCapture
 
 import QuantumControlBase: get_control_deriv
 import QuantumPropagators.Controls: get_controls, evaluate, evaluate!, substitute
@@ -16,8 +16,8 @@ end
 # Define the methods required for propagation, but not the methods required
 # for gradients
 get_controls(G::InvalidGenerator) = (G.control,)
-evaluate(G::InvalidGenerator, args...) = I(4)
-evaluate!(op, G, args...) = op
+evaluate(G::InvalidGenerator, args...; kwargs...) = I(4)
+evaluate!(op, G, args...; kwargs...) = op
 substitute(G::InvalidGenerator, args...) = G
 
 
@@ -50,14 +50,18 @@ get_control_deriv(::InvalidAmplitudeWrongDeriv, control) = nothing
 
     @test QuantumPropagators.Interfaces.check_generator(generator; state, tlist)
 
-    test_logger = QuantumTestLogger()
-    with_logger(test_logger) do
-        @test check_generator(generator; state, tlist) ≡ false
+    captured = IOCapture.capture(rethrow=Union{}, passthrough=false) do
+        check_generator(generator; state, tlist)
     end
-
-    @test "`get_control_derivs(generator, controls)` must be defined" ∈ test_logger
-    @test "`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`" ∈
-          test_logger
+    @test captured.value ≡ false
+    @test contains(
+        captured.output,
+        "`get_control_derivs(generator, controls)` must be defined"
+    )
+    @test contains(
+        captured.output,
+        "`get_control_deriv(generator, control)` must return `nothing` if `control` is not in `get_controls(generator)`"
+    )
 
 end
 
@@ -78,20 +82,23 @@ end
 
     @test QuantumPropagators.Interfaces.check_generator(H; state, tlist)
 
-    test_logger = QuantumTestLogger()
-    with_logger(test_logger) do
-        @test check_generator(H; state, tlist) ≡ false
+    captured = IOCapture.capture(rethrow=Union{}, passthrough=false) do
+        check_generator(H; state, tlist)
     end
-    @test "get_control_deriv(ampl, control) must be defined" ∈ test_logger
+    @test captured.value ≡ false
+    @test contains(captured.output, "get_control_deriv(ampl, control) must be defined")
 
     ampl = InvalidAmplitudeWrongDeriv(t -> 1.0)
-    test_logger = QuantumTestLogger()
-    with_logger(test_logger) do
+    captured = IOCapture.capture(rethrow=Union{}, passthrough=false) do
         check_amplitude(ampl; tlist)
     end
-    @test "get_control_deriv(ampl, control) for  control 1 must return an object that evaluates to a Number" ∈
-          test_logger
-    @test "get_control_deriv(ampl, control) must return 0.0 if it does not depend on `control`" ∈
-          test_logger
+    @test contains(
+        captured.output,
+        "get_control_deriv(ampl, control) for  control 1 must return an object that evaluates to a Number"
+    )
+    @test contains(
+        captured.output,
+        "get_control_deriv(ampl, control) must return 0.0 if it does not depend on `control`"
+    )
 
 end

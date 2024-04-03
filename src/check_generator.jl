@@ -8,10 +8,13 @@ using QuantumPropagators.Interfaces: catch_abbreviated_backtrace
 """Check the dynamical `generator` in the context of optimal control.
 
 ```
-@test check_generator(generator; state, tlist,
-                     for_mutable_state=true, for_immutable_state=true,
-                     for_expval=true, for_gradient_optimization=true,
-                     atol=1e-15, quiet=false)
+@test check_generator(
+    generator; state, tlist,
+    for_mutable_state=true, for_immutable_state=true,
+    for_expval=true, for_pwc=true, for_time_continuous=false,
+    for_parameterization=false, for_gradient_optimization=true,
+    atol=1e-15, quiet=false
+)
 ```
 
 verifies the given `generator`. This checks all the conditions of
@@ -46,6 +49,9 @@ function check_generator(
     for_mutable_state=true,
     for_immutable_state=true,
     for_expval=true,
+    for_pwc=true,
+    for_time_continuous=false,
+    for_parameterization=false,
     for_gradient_optimization=true,
     atol=1e-15,
     quiet=false,
@@ -61,6 +67,9 @@ function check_generator(
         for_mutable_state,
         for_immutable_state,
         for_expval,
+        for_pwc,
+        for_time_continuous,
+        for_parameterization,
         atol,
         quiet,
         _message_prefix,

@@ -1,3 +1,6 @@
+import QuantumPropagators.Controls: get_controls, get_parameters
+
+
 """A full control problem with multiple trajectories.
 
 ```julia
@@ -94,3 +97,13 @@ controls = get_controls(problem)
 extracts the controls from `problem.trajectories`.
 """
 get_controls(problem::ControlProblem) = get_controls(problem.trajectories)
+
+
+"""
+```julia
+parameters = get_parameters(problem)
+```
+
+extracts the `parameters` from `problem.trajectories`.
+"""
+get_parameters(problem::ControlProblem) = get_parameters(problem.trajectories)
