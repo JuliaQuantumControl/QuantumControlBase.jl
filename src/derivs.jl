@@ -98,8 +98,7 @@ get_control_deriv(operator::Operator, control) = nothing
 
 # Amplitudes
 
-get_control_deriv(ampl::LockedAmplitude, control) =
-    (control ≡ ampl.control) ? LockedAmplitude(ampl.shape) : 0.0
+get_control_deriv(ampl::LockedAmplitude, control) = 0.0
 
 get_control_deriv(ampl::ShapedAmplitude, control) =
     (control ≡ ampl.control) ? LockedAmplitude(ampl.shape) : 0.0

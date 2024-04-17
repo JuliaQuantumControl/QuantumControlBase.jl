@@ -7,6 +7,7 @@ using QuantumPropagators.Controls
 using QuantumPropagators: Generator, Operator
 using QuantumControlTestUtils.RandomObjects: random_matrix, random_state_vector
 using QuantumControl.Interfaces: check_generator, check_amplitude
+using QuantumPropagators.Amplitudes: LockedAmplitude, ShapedAmplitude
 
 
 _AT(::Generator{OT,AT}) where {OT,AT} = AT
@@ -116,5 +117,47 @@ end
     @test check_amplitude(H[2][2]; tlist)
     @test check_amplitude(H[3][2]; tlist)
     @test check_generator(H; state=Ψ, tlist, for_gradient_optimization=true)
+
+end
+
+
+@testset "LockedAmplitude  get_control_derivs" begin
+
+    shape(t) = 1.0
+    tlist = [0.0, 0.5, 1.0]
+
+    ampl1 = LockedAmplitude(shape)
+    ampl2 = LockedAmplitude(shape, tlist)
+
+    @test get_control_deriv(ampl1, t -> 0.0) == 0.0
+    @test get_control_deriv(ampl1, shape) == 0.0
+
+    @test get_control_deriv(ampl2, t -> 0.0) == 0.0
+    @test get_control_deriv(ampl2, shape) == 0.0
+
+end
+
+
+@testset "ShapedAmplitude  get_control_derivs" begin
+
+    shape(t) = 1.0
+    control(t) = 0.5
+    tlist = [0.0, 0.5, 1.0]
+
+    ampl1 = ShapedAmplitude(control; shape)
+    ampl2 = ShapedAmplitude(control, tlist; shape)
+
+    @test get_control_deriv(ampl1, t -> 0.0) == 0.0
+    @test get_control_deriv(ampl1, shape) == 0.0
+    @test get_control_deriv(ampl1, control) == LockedAmplitude(shape)
+
+    @test get_control_deriv(ampl2, t -> 0.0) == 0.0
+    @test get_control_deriv(ampl2, shape) == 0.0
+    control2 = get_controls(ampl2)[1]
+    @test control2 ≢ control  # should have been discretized
+    @test ampl2.shape ≢ shape  # should have been discretized
+    @test control2 isa Vector{Float64}
+    @test ampl2.shape isa Vector{Float64}
+    @test get_control_deriv(ampl2, control2) == LockedAmplitude(ampl2.shape)
 
 end
