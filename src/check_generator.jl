@@ -10,6 +10,7 @@ using QuantumPropagators.Interfaces: catch_abbreviated_backtrace
 ```
 @test check_generator(
     generator; state, tlist,
+    for_mutable_operator=true, for_immutable_operator=true,
     for_mutable_state=true, for_immutable_state=true,
     for_expval=true, for_pwc=true, for_time_continuous=false,
     for_parameterization=false, for_gradient_optimization=true,
@@ -46,6 +47,8 @@ function check_generator(
     generator;
     state,
     tlist,
+    for_mutable_operator=true,
+    for_immutable_operator=true,
     for_mutable_state=true,
     for_immutable_state=true,
     for_expval=true,
@@ -64,6 +67,8 @@ function check_generator(
         generator;
         state,
         tlist,
+        for_mutable_operator,
+        for_immutable_operator,
         for_mutable_state,
         for_immutable_state,
         for_expval,
@@ -111,6 +116,8 @@ function check_generator(
                     deriv;
                     state,
                     tlist,
+                    for_mutable_operator,
+                    for_immutable_operator,
                     for_mutable_state,
                     for_immutable_state,
                     for_expval,

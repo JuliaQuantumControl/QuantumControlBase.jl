@@ -43,6 +43,8 @@ function optimize(
     method::Union{Module,Symbol},
     check=true,
     for_expval=true, # undocumented
+    for_mutable_operator=true,  # undocumented
+    for_immutable_operator=true, # undocumented
     for_immutable_state=true, # undocumented
     for_mutable_state=true, # undocumented
     for_pwc=true,  # undocumented
@@ -74,6 +76,8 @@ function optimize(
                 traj.generator;
                 state=traj.initial_state,
                 tlist=problem.tlist,
+                for_mutable_operator,
+                for_immutable_operator,
                 for_immutable_state,
                 for_mutable_state,
                 for_expval,
