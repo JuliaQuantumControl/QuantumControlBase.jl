@@ -2,7 +2,7 @@ using Test
 
 using QuantumControlBase: Trajectory, propagate_trajectory
 using QuantumPropagators: Cheby, ExpProp
-import QuantumPropagators.Controls: substitute, get_controls
+using QuantumPropagators.Controls: substitute, get_controls
 using QuantumControlTestUtils.RandomObjects: random_state_vector, random_dynamic_generator
 using StableRNGs
 using LinearAlgebra: norm

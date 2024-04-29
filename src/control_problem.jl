@@ -1,4 +1,4 @@
-import QuantumPropagators.Controls: get_controls, get_parameters
+import QuantumPropagators.Controls: get_controls, get_parameters, substitute
 
 
 """A full control problem with multiple trajectories.
@@ -107,3 +107,20 @@ parameters = get_parameters(problem)
 extracts the `parameters` from `problem.trajectories`.
 """
 get_parameters(problem::ControlProblem) = get_parameters(problem.trajectories)
+
+
+"""
+```julia
+problem = substitute(problem::ControlProblem, replacements)
+```
+
+substitutes in `problem.trajectories`
+"""
+function substitute(problem::ControlProblem, replacements)
+    return ControlProblem(
+        substitute(problem.trajectories, replacements),
+        problem.tlist;
+        problem.kwargs...
+    )
+
+end
