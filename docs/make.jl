@@ -6,22 +6,6 @@ using Pkg
 using DocumenterCitations
 using DocumenterInterLinks
 
-DocMeta.setdocmeta!(
-    QuantumControlBase,
-    :DocTestSetup,
-    :(using QuantumControlBase);
-    recursive=true
-)
-
-links = InterLinks(
-    "TimerOutputs" => (
-        "https://github.com/KristofferC/TimerOutputs.jl",
-        joinpath(@__DIR__, "src", "inventories", "TimerOutputs.toml")
-    ),
-    "QuantumPropagators" => "https://juliaquantumcontrol.github.io/QuantumPropagators.jl/dev/",
-    "QuantumControl" => "https://juliaquantumcontrol.github.io/QuantumControl.jl/dev/",
-)
-
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"); style=:numeric)
 
 PROJECT_TOML = Pkg.TOML.parsefile(joinpath(@__DIR__, "..", "Project.toml"))
@@ -30,13 +14,27 @@ NAME = PROJECT_TOML["name"]
 AUTHORS = join(PROJECT_TOML["authors"], ", ") * " and contributors"
 GITHUB = "https://github.com/JuliaQuantumControl/QuantumControlBase.jl"
 
+DEV_OR_STABLE = "stable/"
+if endswith(VERSION, "dev")
+    DEV_OR_STABLE = "dev/"
+end
+
+
+links = InterLinks(
+    "TimerOutputs" => (
+        "https://github.com/KristofferC/TimerOutputs.jl",
+        joinpath(@__DIR__, "src", "inventories", "TimerOutputs.toml")
+    ),
+    "QuantumPropagators" => "https://juliaquantumcontrol.github.io/QuantumPropagators.jl/$DEV_OR_STABLE",
+)
+
 println("Starting makedocs")
 
 makedocs(;
     plugins=[bib, links],
     authors=AUTHORS,
     sitename="QuantumControlBase.jl",
-    warnonly=true,
+    warnonly=false,
     format=Documenter.HTML(;
         prettyurls=true,
         canonical="https://juliaquantumcontrol.github.io/QuantumControlBase.jl",

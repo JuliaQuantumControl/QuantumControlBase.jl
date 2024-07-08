@@ -1,7 +1,7 @@
 using Test
-using QuantumControlBase: chain_infohooks
+using QuantumControlBase: chain_callbacks
 
-@testset "chain_infohooks" begin
+@testset "chain_callbacks" begin
 
     function hook1(wrk, a1, a2, args...)
         return (1,)
@@ -20,7 +20,7 @@ using QuantumControlBase: chain_infohooks
         return nothing
     end
 
-    chained = chain_infohooks(hook1, hook2, hook3, hook4)
+    chained = chain_callbacks(hook1, hook2, hook3, hook4)
 
     res = chained(nothing, 0, 0)
 

@@ -33,14 +33,7 @@ struct ControlProblem
     tlist::Vector{Float64}
     kwargs::Dict{Symbol,Any}
     function ControlProblem(trajectories, tlist; kwargs...)
-        kwargs_dict = Dict{Symbol,Any}(kwargs)  # make the kwargs mutable
-        if :info_hook in keys(kwargs_dict)
-            info_hook = kwargs_dict[:info_hook]
-            if info_hook isa Union{Tuple,Vector}
-                @debug "Implicitly combining info_hooks with chain_infohooks"
-                kwargs_dict[:info_hook] = chain_infohooks(info_hook...)
-            end
-        end
+        kwargs_dict = Dict{Symbol,Any}(kwargs)
         new(trajectories, tlist, kwargs_dict)
     end
 end

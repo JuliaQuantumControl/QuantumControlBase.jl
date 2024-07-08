@@ -25,9 +25,9 @@ using SafeTestsets
         include("test_functionals.jl")
     end
 
-    println("* Infohook (test_infohook.jl):")
-    @time @safetestset "Infohook" begin
-        include("test_infohook.jl")
+    println("* Callbacks (test_callbacks.jl):")
+    @time @safetestset "Callbacks" begin
+        include("test_callbacks.jl")
     end
 
     println("* Optimize-kwargs (test_optimize_kwargs.jl):")
