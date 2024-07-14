@@ -20,77 +20,67 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - title: 'Linux - latest'
+          - title: 'Linux - Latest'
             os: ubuntu-latest
             version: '1'
-            arch: x64
     steps:
-      - uses: actions/checkout@v3
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
-      - run: |
-          # Instantiate Pkg
+      - name: "Instantiate test environment"
+        run: |
           wget https://raw.githubusercontent.com/JuliaQuantumControl/JuliaQuantumControl/master/scripts/installorg.jl
           julia --project=test installorg.jl
-      - run: |
-          # Run tests
+      - name: "Run tests"
+        run: |
           julia --project=test --color=auto --startup-file=yes --code-coverage="user" --depwarn="yes" --check-bounds="yes" -e 'include("test/runtests.jl")'
-      - run: |
-          # Run upstream "Krotov" tests
+      - name: "Run downstream Krotov tests"
+        run: |
           julia --project=test -e '
             using Pkg
             Pkg.test("Krotov", coverage=true)'
-      - run: |
-          # Run upstream "GRAPE" tests
+      - name: "Run downstream GRAPE tests"
+        run: |
           julia --project=test -e '
             using Pkg
             Pkg.test("GRAPE", coverage=true)'
       - uses: julia-actions/julia-processcoverage@v1
-      - run: |
-          # Summarize coverage
-          julia --project=test -e 'using QuantumControlTestUtils; show_coverage();'
-      - uses: codecov/codecov-action@v3
+      - name: "Summarize coverage"
+        run: julia --project=test -e 'using QuantumControlTestUtils; show_coverage();'
+      - uses: codecov/codecov-action@v4
         with:
-          files: lcov.info
+          file: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
   docs:
     name: Documentation
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
-      - uses: julia-actions/cache@v1
-      - run: |
-          # Install Python dependencies
+      - name: "Install Python dependencies"
+        run: |
           set -x
           /usr/bin/python3 -m pip install zip-files
-      - run: |
-          # Instantiate Pkg
+      - name: "Instantiate test environment"
+        run: |
           wget https://raw.githubusercontent.com/JuliaQuantumControl/JuliaQuantumControl/master/scripts/installorg.jl
           julia --project=test installorg.jl
-      - run: |
-          # Run doctests
-          julia --project=test -e '
-            using Documenter: DocMeta, doctest
-            using QuantumControlBase
-            DocMeta.setdocmeta!(QuantumControlBase, :DocTestSetup, :(using QuantumControlBase); recursive=true)
-            doctest(QuantumControlBase)'
-      - run: |
-          # Make documentation
-          julia --project=test docs/make.jl
+      - name: "Build documentation"
+        run: julia  --threads auto --project=test docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-      - name: Zip the HTML documentation
+      - name: "Zip the HTML documentation"
         run: zip-folder --debug --auto-root --outfile "docs.zip" docs/build
-      - uses: actions/upload-artifact@v3
-        name: Upload documentation artifacts
+      - uses: actions/upload-artifact@v4
+        name: "Upload documentation artifacts"
         with:
           name: QuantumControlBase
           # We need at least two files in the artifact to avoid a weird
@@ -102,8 +92,8 @@ jobs:
     name: Codestyle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: julia-actions/setup-julia@v1
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
       - name: Get codestyle settings
