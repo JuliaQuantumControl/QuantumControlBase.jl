@@ -22,6 +22,7 @@ PROBLEM = dummy_control_problem(;
     n_trajectories=N,
     n_controls=L,
     n_steps=N_T,
+    J_T=J_T_sm,
     rng=RNG
 )
 
