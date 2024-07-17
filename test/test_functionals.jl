@@ -40,30 +40,30 @@ PROBLEM = dummy_control_problem(;
     χ6 = [similar(traj.initial_state) for traj in trajectories]
     χ7 = [similar(traj.initial_state) for traj in trajectories]
     χ8 = [similar(traj.initial_state) for traj in trajectories]
-    ϕ = [random_state_vector(N_HILBERT; rng=RNG) for k = 1:N]
-    τ = [traj.target_state ⋅ ϕ[k] for (k, traj) in enumerate(trajectories)]
+    Ψ = [random_state_vector(N_HILBERT; rng=RNG) for k = 1:N]
+    τ = [traj.target_state ⋅ Ψ[k] for (k, traj) in enumerate(trajectories)]
 
     for functional in (J_T_sm, J_T_re, J_T_ss)
 
         #!format: off
-        chi_analytical! = make_chi(functional, trajectories; mode=:analytic)
-        chi_auto! = make_chi(functional, trajectories)
-        chi_zyg! = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote)
-        chi_zyg_phi! = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote, via=:phi)
-        chi_zyg_tau! = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote, via=:tau)
-        chi_fdm! = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences)
-        chi_fdm_phi! = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences, via=:phi)
-        chi_fdm_tau! = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences, via=:tau)
+        chi_analytical = make_chi(functional, trajectories; mode=:analytic)
+        chi_auto = make_chi(functional, trajectories)
+        chi_zyg = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote)
+        chi_zyg_states = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote, via=:states)
+        chi_zyg_tau = make_chi(functional, trajectories; mode=:automatic, automatic=Zygote, via=:tau)
+        chi_fdm = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences)
+        chi_fdm_states = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences, via=:states)
+        chi_fdm_tau = make_chi(functional, trajectories; mode=:automatic, automatic=FiniteDifferences, via=:tau)
         #!format: on
 
-        chi_analytical!(χ1, ϕ, trajectories; τ)
-        chi_auto!(χ2, ϕ, trajectories; τ)
-        chi_zyg!(χ3, ϕ, trajectories; τ)
-        chi_zyg_phi!(χ4, ϕ, trajectories; τ)
-        chi_zyg_tau!(χ5, ϕ, trajectories; τ)
-        chi_fdm!(χ6, ϕ, trajectories; τ)
-        chi_fdm_phi!(χ7, ϕ, trajectories; τ)
-        chi_fdm_tau!(χ8, ϕ, trajectories; τ)
+        χ1 = chi_analytical(Ψ, trajectories; τ)
+        χ2 = chi_auto(Ψ, trajectories; τ)
+        χ3 = chi_zyg(Ψ, trajectories; τ)
+        χ4 = chi_zyg_states(Ψ, trajectories)
+        χ5 = chi_zyg_tau(Ψ, trajectories; τ)
+        χ6 = chi_fdm(Ψ, trajectories; τ)
+        χ7 = chi_fdm_states(Ψ, trajectories)
+        χ8 = chi_fdm_tau(Ψ, trajectories; τ)
 
         @test maximum(norm.(χ1 .- χ2)) < 1e-12
         @test maximum(norm.(χ1 .- χ3)) < 1e-12

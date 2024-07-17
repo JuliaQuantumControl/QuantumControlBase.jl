@@ -26,12 +26,31 @@ links = InterLinks(
         joinpath(@__DIR__, "src", "inventories", "TimerOutputs.toml")
     ),
     "QuantumPropagators" => "https://juliaquantumcontrol.github.io/QuantumPropagators.jl/$DEV_OR_STABLE",
+    "QuantumControl" => "https://juliaquantumcontrol.github.io/QuantumControl.jl/$DEV_OR_STABLE",
+)
+
+externals = ExternalFallbacks(
+    "Generator" => "@extref QuantumPropagators :jl:type:`QuantumPropagators.Generators.Generator`",
+    "QuantumPropagators.Interfaces.check_amplitude" => "@extref QuantumPropagators :jl:function:`QuantumPropagators.Interfaces.check_amplitude`",
+    "evaluate" => "@extref QuantumPropagators :jl:function:`QuantumPropagators.Controls.evaluate`",
+    "Operator" => "@extref QuantumPropagators :jl:type:`QuantumPropagators.Generators.Operator`",
+    "QuantumPropagators.Interfaces.check_generator" => "@extref QuantumPropagators :jl:function:`QuantumPropagators.Interfaces.check_generator`",
+    "QuantumPropagators.AbstractPropagator" => "@extref QuantumPropagators :jl:type:`QuantumPropagators.AbstractPropagator`",
+    "QuantumPropagators.init_prop" => "@extref QuantumPropagators :jl:function:`QuantumPropagators.init_prop`",
+    "QuantumPropagators.propagate" => "@extref QuantumPropagators :jl:function:`QuantumPropagators.propagate`",
+    "QuantumControl.Functionals.J_T_sm" => "@extref QuantumControl :jl:function:`QuantumControl.Functionals.J_T_sm`",
+    # "QuantumControl.Functionals.chi_sm" => "@extref QuantumControl :jl:function:`QuantumControl.Functionals.chi_sm`",
+    "QuantumControl.Functionals.J_T_re" => "@extref QuantumControl :jl:function:`QuantumControl.Functionals.J_T_re`",
+    # "QuantumControl.Functionals.chi_re" => "@extref QuantumControl :jl:function:`QuantumControl.Functionals.chi_re`",
+    "QuantumControl.Functionals.J_T_ss" => "@extref QuantumControl :jl:function:`QuantumControl.Functionals.J_T_ss`",
+    # "QuantumControl.Functionals.chi_ss" => "@extref QuantumControl :jl:function:`QuantumControl.Functionals.chi_ss`",
+    "check_state" => "@extref QuantumPropagators :jl:function:`QuantumPropagators.Interfaces.check_state`"
 )
 
 println("Starting makedocs")
 
 makedocs(;
-    plugins=[bib, links],
+    plugins=[bib, links, externals],
     authors=AUTHORS,
     sitename="QuantumControlBase.jl",
     warnonly=false,

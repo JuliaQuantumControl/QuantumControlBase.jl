@@ -4,53 +4,110 @@ using LinearAlgebra
 # default for `via` argument of `make_chi`
 function _default_chi_via(trajectories)
     if any(isnothing(traj.target_state) for traj in trajectories)
-        return :phi
+        return :states
     else
         return :tau
     end
 end
 
 
-@doc raw"""Return a function that evaluates ``|χ_k⟩ = -∂J_T/∂⟨ϕ_k|``.
+"""Overlaps of target states with propagates states
 
 ```julia
-chi! = make_chi(
+τ = taus(Ψ, trajectories)
+```
+
+calculates a vector of values ``τ_k = ⟨Ψ_k^{tgt}|Ψ_k⟩`` where ``|Ψ_k^{tgt}⟩``
+is the `traj.target_state` of the ``k``'th element of `trajectories` and
+``|Ψₖ⟩`` is the ``k``'th element of `Ψ`.
+
+The definition of the τ values with ``Ψ_k^{tgt}`` on the left (overlap of
+target states with propagated states, as opposed to overlap of propagated
+states with target states) matches Refs. [PalaoPRA2003](@cite)
+and [GoerzQ2022](@cite).
+
+The function requires that each trajectory defines a target state.
+See also [`taus!`](@ref) for an in-place version that includes well-defined
+error handling for any trajectories whose `target_state` property is `nothing`.
+"""
+function taus(Ψ, trajectories)
+    # This function does not delegate to `taus!`, in order to make it
+    # compatible with automatic differentiation, which doesn't support
+    # mutation.
+    return [dot(traj.target_state, Ψₖ) for (traj, Ψₖ) in zip(trajectories, Ψ)]
+end
+
+
+"""Overlaps of target states with propagates states, calculated in-place.
+
+```julia
+taus!(τ, Ψ, trajectories; ignore_missing_target_state=false)
+```
+
+overwrites the complex vector `τ` with the results of
+[`taus(Ψ, trajectories)`](@ref taus).
+
+Throws an `ArgumentError` if any of trajectories have a `target_state` of
+`nothing`. If `ignore_missing_target_state=true`, values in `τ` instead will
+remain unchanged for any trajectories with a missing target state.
+"""
+function taus!(τ::Vector{ComplexF64}, Ψ, trajectories; ignore_missing_target_state=false)
+    for (k, (traj, Ψₖ)) in enumerate(zip(trajectories, Ψ))
+        if !isnothing(traj.target_state)
+            τ[k] = dot(traj.target_state, Ψₖ)
+        else
+            # With `ignore_missing_target_state=true`, we just skip the value.
+            # This makes `taus!` convenient for calculating τ values in
+            # Krotov/GRAPE if and only if the function is based on target
+            # states
+            if !ignore_missing_target_state
+                msg = "trajectory[$k] has no `target_state`. Cannot calculate τ = ⟨Ψ_tgt|Ψ⟩"
+                throw(ArgumentError(msg))
+            end
+        end
+    end
+
+end
+
+
+@doc raw"""Return a function that calculates ``|χ_k⟩ = -∂J_T/∂⟨Ψ_k|``.
+
+```julia
+chi = make_chi(
     J_T,
     trajectories;
     mode=:any,
     automatic=:default,
-    via=(any(isnothing(t.target_state) for t in trajectories) ? :phi : :tau),
+    via=(any(isnothing(t.target_state) for t in trajectories) ? :states : :tau),
 )
 ```
 
-creates a function `chi!(χ, ϕ, trajectories; τ)` that sets
-the k'th element of `χ` to ``|χ_k⟩ = -∂J_T/∂⟨ϕ_k|``, where ``|ϕ_k⟩`` is the
-k'th element of `ϕ`. These are the states used as the boundary condition for
+creates a function `chi(Ψ, trajectories; τ)` that returns
+a vector of states `χ` with ``|χ_k⟩ = -∂J_T/∂⟨Ψ_k|``, where ``|Ψ_k⟩`` is the
+k'th element of `Ψ`. These are the states used as the boundary condition for
 the backward propagation propagation in Krotov's method and GRAPE. Each
 ``|χₖ⟩`` is defined as a matrix calculus
 [Wirtinger derivative](https://www.ekinakyurek.me/complex-derivatives-wirtinger/),
 
 ```math
-|χ_k(T)⟩ = -\frac{∂J_T}{∂⟨ϕ_k|} = -\frac{1}{2} ∇_{ϕ_k} J_T\,;\qquad
-∇_{ϕ_k} J_T ≡ \frac{∂J_T}{\Re[ϕ_k]} + i \frac{∂J_T}{\Im[ϕ_k]}\,.
+|χ_k(T)⟩ = -\frac{∂J_T}{∂⟨Ψ_k|} = -\frac{1}{2} ∇_{Ψ_k} J_T\,;\qquad
+∇_{Ψ_k} J_T ≡ \frac{∂J_T}{\Re[Ψ_k]} + i \frac{∂J_T}{\Im[Ψ_k]}\,.
 ```
 
-The function `J_T` must take a vector of states `ϕ` and a vector of
-`trajectories` as positional parameters, and a vector `τ` as a keyword argument,
-see e.g. `J_T_sm`). If all trajectories define a `target_state`, then `τ`
-will be the overlap of the states `ϕ` with those target states. The functional
-`J_T` may or may not use those overlaps.  Likewise, the resulting `chi!` may or
-may not use the keyword parameter `τ`.
+The function `J_T` must take a vector of states `Ψ` and a vector of
+`trajectories` as positional parameters. If `via=:tau`, it must also a vector
+`tau` as a keyword argument, see e.g. `J_T_sm`).
+that contains the overlap of the states `Ψ` with the target states from the `trajectories`
 
 The derivative can be calculated analytically of automatically (via automatic
 differentiation) depending on the value of `mode`. For `mode=:any`, an analytic
 derivative is returned if available, with a fallback to an automatic derivative.
 
-If `mode=:analytic`, return an analytically known ``-∂J_T/∂⟨ϕ_k|``, e.g.,
+If `mode=:analytic`, return an analytically known ``-∂J_T/∂⟨Ψ_k|``, e.g.,
 
-* `J_T_sm` → `chi_sm!`,
-* `J_T_re` → `chi_re!`,
-* `J_T_ss` → `chi_ss!`.
+* [`QuantumControl.Functionals.J_T_sm`](@ref) → [`QuantumControl.Functionals.chi_sm`](@ref),
+* [`QuantumControl.Functionals.J_T_re`](@ref) → [`QuantumControl.Functionals.chi_re`](@ref),
+* [`QuantumControl.Functionals.J_T_ss`](@ref) → [`QuantumControl.Functionals.chi_ss`](@ref).
 
 and throw an error if no analytic derivative is known.
 
@@ -62,26 +119,25 @@ passed as `automatic` keyword argument. Alternatively, it can be registered as
 a default value for `automatic` by calling
 `QuantumControl.set_default_ad_framework`.
 
-When evaluating ``|χ_k⟩`` automatically, if `via=:phi` is given , ``|χ_k(T)⟩``
+When evaluating ``|χ_k⟩`` automatically, if `via=:states` is given , ``|χ_k(T)⟩``
 is calculated directly as defined above from the gradient with respect to
-the states ``\{|ϕ_k(T)⟩\}``. The resulting function `chi!` ignores any passed
-`τ` keyword argument.
+the states ``\{|Ψ_k(T)⟩\}``.
 
 If `via=:tau` is given instead, the functional ``J_T`` is considered a function
-of overlaps ``τ_k = ⟨ϕ_k^\tgt|ϕ_k(T)⟩``. This requires that all `trajectories`
+of overlaps ``τ_k = ⟨Ψ_k^\tgt|Ψ_k(T)⟩``. This requires that all `trajectories`
 define a `target_state` and that `J_T` calculates the value of the functional
-solely based on the values of `τ` passed as a keyword argument.  With only the
-complex conjugate ``τ̄_k = ⟨ϕ_k(T)|ϕ_k^\tgt⟩`` having an explicit dependency on
-``⟨ϕ_k(T)|``,  the chain rule in this case is
+solely based on the values of `tau` passed as a keyword argument.  With only
+the complex conjugate ``τ̄_k = ⟨Ψ_k(T)|Ψ_k^\tgt⟩`` having an explicit dependency
+on ``⟨Ψ_k(T)|``,  the chain rule in this case is
 
 ```math
 |χ_k(T)⟩
-= -\frac{∂J_T}{∂⟨ϕ_k|}
+= -\frac{∂J_T}{∂⟨Ψ_k|}
 = -\left(
     \frac{∂J_T}{∂τ̄_k}
-    \frac{∂τ̄_k}{∂⟨ϕ_k|}
+    \frac{∂τ̄_k}{∂⟨Ψ_k|}
   \right)
-= - \frac{1}{2} (∇_{τ_k} J_T) |ϕ_k^\tgt⟩\,.
+= - \frac{1}{2} (∇_{τ_k} J_T) |Ψ_k^\tgt⟩\,.
 ```
 
 Again, we have used the definition of the Wirtinger derivatives,
@@ -116,10 +172,11 @@ and the definition of the Zygote gradient with respect to a complex scalar,
     `J_T` function, define a new method `make_analytic_chi` like so:
 
     ```julia
-    QuantumControlBase.make_analytic_chi(::typeof(J_T_sm), trajectories) = chi_sm!
+    QuantumControlBase.make_analytic_chi(::typeof(J_T_sm), trajectories) = chi_sm
     ```
 
-    which links `make_chi` for `J_T_sm` to `chi_sm!`.
+    which links `make_chi` for [`QuantumControl.Functionals.J_T_sm`](@ref)
+    to [`QuantumControl.Functionals.chi_sm`](@ref).
 
 
 !!! warning
@@ -217,7 +274,7 @@ function make_automatic_chi(J_T, trajectories, ::Val{:default}; via)
     else
         automatic = DEFAULT_AD_FRAMEWORK
         chi = make_automatic_chi(J_T, trajectories, DEFAULT_AD_FRAMEWORK; via)
-        (string(automatic) == "default") && error("automatic fallback") # DEBUG
+        (string(automatic) == "default") && error("automatic fallback")
         @info "make_chi for J_T=$(J_T): automatic with $automatic"
         return chi
     end

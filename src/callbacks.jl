@@ -8,7 +8,7 @@ print_iters = make_print_iters(Method; kwargs...)
 constructs the automatic callback to be used by
 `optimize(problem; method=Method, print_iters=true)` to print information after
 each iteration. The keyword arguments are those used to instantiate `problem`
-and those exlicitly passed to [`optimize`](@ref).
+and those explicitly passed to [`optimize`](@ref).
 
 Optimization methods should implement
 `make_print_iters(::Val{:Method}; kwargs...)` where `:Method` is the name
