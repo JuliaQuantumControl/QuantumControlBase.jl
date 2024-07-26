@@ -75,10 +75,6 @@ function optimize(
     print_iters=get(problem.kwargs, :print_iters, true),
     callback=get(problem.kwargs, :callback, nothing),
     for_expval=true, # undocumented
-    for_mutable_operator=true,  # undocumented
-    for_immutable_operator=true, # undocumented
-    for_immutable_state=true, # undocumented
-    for_mutable_state=true, # undocumented
     for_pwc=true,  # undocumented
     for_time_continuous=false,  # undocumented
     for_parameterization=false, # undocumented
@@ -119,17 +115,13 @@ function optimize(
         # TODO: checks will have to be method-dependent, and then we may not
         # need all the `for_...` keyword arguments
         for (i, traj) in enumerate(problem.trajectories)
-            if !check_state(traj.initial_state; for_immutable_state, for_mutable_state)
+            if !check_state(traj.initial_state)
                 error("The `initial_state` of trajectory $i is not valid")
             end
             if !check_generator(
                 traj.generator;
                 state=traj.initial_state,
                 tlist=problem.tlist,
-                for_mutable_operator,
-                for_immutable_operator,
-                for_immutable_state,
-                for_mutable_state,
                 for_expval,
                 for_pwc,
                 for_time_continuous,
