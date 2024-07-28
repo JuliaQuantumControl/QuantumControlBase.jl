@@ -1,6 +1,6 @@
 # QuantumControlBase
 
-[![Version](https://juliahub.com/docs/QuantumControlBase/version.svg)](https://juliahub.com/ui/Packages/QuantumControlBase/bTokw)
+[![Version](https://juliahub.com/docs/General/QuantumControlBase/stable/version.svg)](https://juliahub.com/ui/Packages/General/QuantumControlBase)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliaquantumcontrol.github.io/QuantumControlBase.jl/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliaquantumcontrol.github.io/QuantumControlBase.jl/dev)
 [![Build Status](https://github.com/JuliaQuantumControl/QuantumControlBase.jl/workflows/CI/badge.svg)](https://github.com/JuliaQuantumControl/QuantumControlBase.jl/actions)
