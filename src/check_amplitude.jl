@@ -25,9 +25,13 @@ If `for_gradient_optimization`:
 * If `ampl` does not depend on `control`, [`get_control_deriv(ampl,
   control)`](@ref get_control_deriv) must return `0.0`
 * If `ampl` depends on `control`,
-  [`get_control_deriv(ampl, control)`](@ref get_control_deriv) must return an
-  object `u` so that `evaluate(u, tlist, n)` returns a Number. In most cases,
-  `u` itself will be a Number.
+  [`u = get_control_deriv(ampl, control)`](@ref get_control_deriv) must return
+  an object `u` so that `evaluate(u, tlist, n)` returns a Number. In most
+  cases, `u` itself will be a Number. For more unusual amplitudes, e.g., an
+  amplitude with a non-linear dependency on the controls, `u` may be
+  another amplitude. The controls in `u` (as obtained by
+  [`QuantumPropagators.Controls.get_controls`](@ref)) must be a subset of the
+  controls in `ampl`.
 
 The function returns `true` for a valid amplitude and `false` for an invalid
 amplitude. Unless `quiet=true`, it will log an error to indicate which of the
@@ -57,6 +61,12 @@ function check_amplitude(
                 if !(val isa Number)
                     quiet ||
                         @error "$(px)get_control_deriv(ampl, control) for  control $j must return an object that evaluates to a Number, not $(typeof(val))"
+                    success = false
+                end
+                deriv_controls = Set(objectid(c) for c in get_controls(deriv))
+                if deriv_controls ⊈ Set(objectid.(controls))
+                    quiet ||
+                        @error "$(px)get_control_deriv(ampl, control) for  control $j must return an object `u` so that `get_controls(u)` is a subset of `get_controls(ampl)`"
                     success = false
                 end
             catch exc

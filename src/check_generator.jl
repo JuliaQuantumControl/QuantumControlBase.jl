@@ -29,7 +29,8 @@ If `for_gradient_optimization`:
 * [`get_control_deriv(generator, control)`](@ref get_control_deriv) must return
   an object that passes the less restrictive
   [`QuantumPropagators.Interfaces.check_generator`](@ref) if `control` is in
-  `get_controls(generator)`.
+  `get_controls(generator)`. The controls in the derivative (if any) must be a
+  subset of the controls in `generator.`
 * [`get_control_deriv(generator, control)`](@ref get_control_deriv) must return
   `nothing` if `control` is not in
   [`get_controls(generator)`](@ref get_controls)
@@ -116,6 +117,13 @@ function check_generator(
                     quiet ||
                         @error "$(px)the result of `get_control_deriv(generator, control)` for control $i is not a valid generator"
                     success = false
+                else
+                    deriv_controls = Set(objectid(c) for c in get_controls(deriv))
+                    if deriv_controls ⊈ Set(objectid.(controls))
+                        quiet ||
+                            @error "$(px)get_control_deriv(generator, control) for  control $i must return an object `D` so that `get_controls(D)` is a subset of `get_controls(generator)`"
+                        success = false
+                    end
                 end
             end
         catch exc
