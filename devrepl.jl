@@ -18,21 +18,13 @@ cd(@__DIR__)
 Pkg.activate("test")
 
 function _instantiate()
-    installorg_script = joinpath("..", "scripts", "installorg.jl")
-    if !isfile(installorg_script)
-        @warn "$(@__DIR__) should be inside the JuliaQuantumControl development environment. See https://github.com/JuliaQuantumControl/JuliaQuantumControl#readme"
-        installorg_script = download(
-            "https://raw.githubusercontent.com/JuliaQuantumControl/JuliaQuantumControl/master/scripts/installorg.jl",
-        )
-    end
     if !isfile(joinpath("..", ".JuliaFormatter.toml"))
         download(
             "https://raw.githubusercontent.com/JuliaQuantumControl/JuliaQuantumControl/master/.JuliaFormatter.toml",
             ".JuliaFormatter.toml"
         )
     end
-    include(installorg_script)
-    eval(:(installorg()))
+    Pkg.develop(path=@__DIR__)
 end
 
 if !isfile(joinpath("test", "Manifest.toml"))

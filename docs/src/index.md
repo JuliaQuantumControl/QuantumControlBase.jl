@@ -1,32 +1,5 @@
 # QuantumControlBase
 
-The [QuantumControlBase](https://github.com/JuliaQuantumControl/QuantumControlBase.jl) package provides methods the are useful to multiple packages within the [JuliaQuantumControl](https://github.com/juliaquantumcontrol) organization.
+The [QuantumControlBase](https://github.com/JuliaQuantumControl/QuantumControlBase.jl) package was originally intended to provide methods the are useful to multiple packages within the [JuliaQuantumControl](https://github.com/juliaquantumcontrol) organization. As of `QuantumControl` version 0.11, it is obsolete, with all of its functionality directly included in the [QuantumControl](https://github.com/JuliaQuantumControl/QuantumControl.jl) package.
 
-!!! note
-
-    All user-facing methods defined here are exposed in the main [QuantumControl](https://juliaquantumcontrol.github.io/QuantumControl.jl/) package, so please see [its documentation](https://juliaquantumcontrol.github.io/QuantumControl.jl/) for information on the usage of these methods in a larger context.
-
-
-``\gdef\tgt{\text{tgt}}``
-``\gdef\tr{\operatorname{tr}}``
-``\gdef\Re{\operatorname{Re}}``
-``\gdef\Im{\operatorname{Im}}``
-
-
-## Index
-
-```@index
-Pages = ["index.md"]
-```
-
-
-## Reference
-
-```@autodocs
-Modules = [QuantumControlBase]
-```
-
-## Bibliography
-
-```@bibliography
-```
+Packages like [GRAPE](https://github.com/JuliaQuantumControl/GRAPE.jl) and [Krotov](https://github.com/JuliaQuantumControl/Krotov.jl) now directly extend [QuantumControl](https://github.com/JuliaQuantumControl/QuantumControl.jl).

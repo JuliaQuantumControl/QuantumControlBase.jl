@@ -13,46 +13,6 @@ env:
   GKSwstype: 100
   JULIA_PKG_PRECOMPILE_AUTO: false
 jobs:
-  test:
-    name: Test ${{ matrix.title }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - title: 'Linux - Latest'
-            os: ubuntu-latest
-            version: '1'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: ${{ matrix.version }}
-      - uses: julia-actions/cache@v2
-      - name: "Instantiate test environment"
-        run: |
-          wget https://raw.githubusercontent.com/JuliaQuantumControl/JuliaQuantumControl/master/scripts/installorg.jl
-          julia --project=test installorg.jl
-      - name: "Run tests"
-        run: |
-          julia --project=test --color=auto --startup-file=yes --code-coverage="user" --depwarn="yes" --check-bounds="yes" -e 'include("test/runtests.jl")'
-      - name: "Run downstream Krotov tests"
-        run: |
-          julia --project=test -e '
-            using Pkg
-            Pkg.test("Krotov", coverage=true)'
-      - name: "Run downstream GRAPE tests"
-        run: |
-          julia --project=test -e '
-            using Pkg
-            Pkg.test("GRAPE", coverage=true)'
-      - uses: julia-actions/julia-processcoverage@v1
-      - name: "Summarize coverage"
-        run: julia --project=test -e 'using QuantumControlTestUtils; show_coverage();'
-      - uses: codecov/codecov-action@v4
-        with:
-          files: lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
   docs:
     name: Documentation
     runs-on: ubuntu-latest

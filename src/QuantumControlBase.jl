@@ -1,5 +1,6 @@
 module QuantumControlBase
 
+#=
 # The export here is simply to indicate which symbols should be re-exported in
 # QuantumControl
 export ControlProblem, Trajectory, optimize, propagate_trajectory
@@ -16,5 +17,12 @@ include("callbacks.jl")
 include("check_amplitude.jl")
 include("check_generator.jl")
 include("optimize.jl")
+=#
+
+function __init__()
+    msg = "The QuantumControlBase package is obsolete. Its functionality has been integrated into the main QuantumControl package"
+    @warn msg
+end
+
 
 end

@@ -1,6 +1,4 @@
 using QuantumControlBase
-using QuantumPropagators
-using QuantumControl
 using Documenter
 using Pkg
 using DocumenterCitations

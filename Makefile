@@ -26,8 +26,8 @@ test:  test/Manifest.toml  ## Run the test suite
 	@echo "Done. Consider using 'make devrepl'"
 
 
-test/Manifest.toml: test/Project.toml ../scripts/installorg.jl
-	$(JULIA) --project=test ../scripts/installorg.jl
+test/Manifest.toml: test/Project.toml
+	$(JULIA) --project=test -e 'using Pkg; Pkg.develop(path=".")'
 	@touch $@
 
 

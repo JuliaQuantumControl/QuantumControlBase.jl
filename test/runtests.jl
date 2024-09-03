@@ -1,6 +1,7 @@
 using Test
 using SafeTestsets
 
+#=
 # Note: comment outer @testset to stop after first @safetestset failure
 @time @testset verbose = true "QuantumControlBase" begin
 
@@ -67,3 +68,4 @@ using SafeTestsets
 
 end;
 nothing
+=#
